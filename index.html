@@ -46,6 +46,11 @@
   .gofast-card { height: 100%; display: flex; flex-direction: column; }
   .gofast-card .fr-card__body { flex: 1 1 auto; min-height: 0; }
   .gofast-card .fr-card__content { overflow: auto; min-height: 0; }
+
+  /* Sécurité : DSFR/JS peut jouer avec hidden */
+.fr-tabs__panel { display: block; }
+.fr-tabs__panel[hidden] { display: none !important; }
+
 </style>
 
 </head>
@@ -112,8 +117,11 @@
       </ul>
 
       <!-- PANEL 1 : ANALYSE -->
-      <div id="panel-analyse" class="fr-tabs__panel fr-tabs__panel--selected" role="tabpanel"
-           aria-labelledby="tab-analyse" tabindex="0">
+      <div id="panel-analyse"
+     class="fr-tabs__panel fr-tabs__panel--selected"
+     role="tabpanel"
+     aria-labelledby="tab-analyse"
+     tabindex="0">
 
         <div class="fr-grid-row fr-grid-row--gutters gofast-grid">
 
@@ -211,8 +219,12 @@
       </div>
 
       <!-- PANEL 2 : RÉSULTATS -->
-      <div id="panel-resultats" class="fr-tabs__panel" role="tabpanel"
-           aria-labelledby="tab-resultats" tabindex="0">
+      <div id="panel-resultats"
+     class="fr-tabs__panel"
+     role="tabpanel"
+     aria-labelledby="tab-resultats"
+     tabindex="0"
+     hidden>
 
         <div class="fr-grid-row fr-grid-row--gutters">
           <div class="fr-col-12" id="resultats">
@@ -340,19 +352,25 @@ window.addEventListener("load", scheduleLayoutMeasure);
   }
 
   function goToTab(which) {
-    const isAnalyse = which === "analyse";
+  const isAnalyse = which === "analyse";
 
-    els.tabAnalyse.setAttribute("aria-selected", String(isAnalyse));
-    els.tabAnalyse.tabIndex = isAnalyse ? 0 : -1;
+  // tabs (ARIA)
+  els.tabAnalyse.setAttribute("aria-selected", String(isAnalyse));
+  els.tabAnalyse.tabIndex = isAnalyse ? 0 : -1;
 
-    els.tabResultats.setAttribute("aria-selected", String(!isAnalyse));
-    els.tabResultats.tabIndex = !isAnalyse ? 0 : -1;
+  els.tabResultats.setAttribute("aria-selected", String(!isAnalyse));
+  els.tabResultats.tabIndex = !isAnalyse ? 0 : -1;
 
-    els.panelAnalyse.classList.toggle("fr-tabs__panel--selected", isAnalyse);
-    els.panelResultats.classList.toggle("fr-tabs__panel--selected", !isAnalyse);
+  // panels (le point clé)
+  els.panelAnalyse.hidden = !isAnalyse;
+  els.panelResultats.hidden = isAnalyse;
 
-    (isAnalyse ? els.tabAnalyse : els.tabResultats).focus();
-  }
+  els.panelAnalyse.classList.toggle("fr-tabs__panel--selected", isAnalyse);
+  els.panelResultats.classList.toggle("fr-tabs__panel--selected", !isAnalyse);
+
+  (isAnalyse ? els.tabAnalyse : els.tabResultats).focus();
+}
+
 
   // ============================================================
   // UTILITAIRES
