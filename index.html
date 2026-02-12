@@ -3,56 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GoFast - Détection des convois de véhicules</title>
+  <title>GoFast — Détection des convois de véhicules</title>
 
-  <!-- Favicon (DSFR) -->
   <link rel="icon" type="image/png"
         href="https://www.interieur.gouv.fr/themes/custom/dsfr/src/images/logo/favicon.png">
 
-  <!-- DSFR -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css">
+  <!-- DSFR CSS (un seul, stable) -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css">
 
-<style>
-  html, body { height: 100%; }
-  body { margin: 0; }
+  <style>
+    html, body { height: 100%; }
+    body { margin: 0; overflow: hidden; background: #fff; }
 
-  /* On bloque le scroll page, mais on scroll dans le contenu */
-  body { overflow: hidden; }
+    /* main = zone appli (pas de scroll page) */
+    main {
+      height: calc(100vh - var(--gofast-header-h, 160px));
+      overflow: hidden;
+    }
 
-  /* Layout plein écran robuste */
-  main {
-  height: calc(100vh - var(--gofast-header-h, 160px)); /* fallback réel */
-  overflow: hidden;
-}
+    /* Faux onglets (visuel tabs, mais sans JS DSFR) */
+    .gofast-tabs {
+      display: inline-flex;
+      border-bottom: 2px solid var(--border-default-grey);
+      gap: 0;
+    }
+    .gofast-tab {
+      appearance: none;
+      border: 1px solid var(--border-default-grey);
+      border-bottom: none;
+      padding: .75rem 1.25rem;
+      background: var(--background-default-grey);
+      font: inherit;
+      cursor: pointer;
+    }
+    .gofast-tab[aria-selected="true"] {
+      background: #fff;
+      border-color: var(--border-action-high-blue-france);
+      box-shadow: inset 0 3px 0 0 var(--border-action-high-blue-france);
+      font-weight: 700;
+    }
 
+    /* Pages */
+    .gofast-page {
+      height: calc(100% - 62px); /* hauteur approx des faux onglets + marge */
+      overflow: auto;
+      padding-top: 1.5rem;
+    }
+    .gofast-page[hidden] { display: none !important; }
 
-  /* Tabs = colonne (onglets en haut, contenu scrollable en dessous) */
-  .fr-tabs {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
+    /* Cartes même hauteur dans Analyse */
+    .gofast-grid { min-height: 600px; }
+    .gofast-card { height: 100%; display: flex; flex-direction: column; }
+    .gofast-card .fr-card__body { flex: 1 1 auto; min-height: 0; }
+    .gofast-card .fr-card__content { overflow: auto; min-height: 0; }
 
-  /* Le panel devient la zone scrollable */
-  .fr-tabs__panel {
-    flex: 1 1 auto;
-    overflow: auto;        /* ✅ au lieu de hidden */
-    min-height: 0;         /* ✅ indispensable pour scroll en flex */
-  }
+    /* Dropzone */
+    #dropzone {
+      border: 2px dashed var(--border-default-grey);
+      border-radius: 8px;
+    }
+    #dropzone.is-dragover {
+      border-color: var(--border-action-high-blue-france);
+      background: var(--background-alt-blue-france);
+    }
 
-  /* Conserver les 2 cartes côte à côte et même hauteur */
-  .gofast-grid { min-height: 100%; }
-  .gofast-card { height: 100%; display: flex; flex-direction: column; }
-  .gofast-card .fr-card__body { flex: 1 1 auto; min-height: 0; }
-  .gofast-card .fr-card__content { overflow: auto; min-height: 0; }
-
-  /* Sécurité : DSFR/JS peut jouer avec hidden */
-.fr-tabs__panel { display: block; }
-.fr-tabs__panel[hidden] { display: none !important; }
-
-</style>
-
+    /* Petit confort */
+    .fr-header__service-title { letter-spacing: .2px; }
+  </style>
 </head>
 
 <body>
@@ -65,9 +83,7 @@
           <div class="fr-header__brand fr-enlarge-link">
             <div class="fr-header__brand-top">
               <div class="fr-header__logo">
-                <p class="fr-logo">
-                  Ministère<br>de l’Intérieur
-                </p>
+                <p class="fr-logo">Ministère<br>de l’Intérieur</p>
               </div>
               <div class="fr-header__navbar"></div>
             </div>
@@ -83,12 +99,8 @@
           <div class="fr-header__tools">
             <div class="fr-header__tools-links">
               <ul class="fr-btns-group fr-btns-group--sm">
-                <li>
-                  <button id="btnDemo" class="fr-btn fr-btn--secondary">Charger un jeu de démo</button>
-                </li>
-                <li>
-                  <button id="btnReset" class="fr-btn fr-btn--secondary">Réinitialiser</button>
-                </li>
+                <li><button id="btnDemo" class="fr-btn fr-btn--secondary">Charger un jeu de démo</button></li>
+                <li><button id="btnReset" class="fr-btn fr-btn--secondary">Réinitialiser</button></li>
               </ul>
             </div>
           </div>
@@ -99,246 +111,228 @@
   </header>
 
   <main class="fr-container fr-my-4w">
-    <!-- Onglets façon "2 pages" -->
-    <div class="fr-tabs" id="gofastTabs">
-      <ul class="fr-tabs__list" role="tablist" aria-label="Navigation GoFast">
-        <li role="presentation">
-          <button id="tab-analyse" class="fr-tabs__tab" tabindex="0" role="tab"
-                  aria-selected="true" aria-controls="panel-analyse">
-            Analyse
-          </button>
-        </li>
-        <li role="presentation">
-          <button id="tab-resultats" class="fr-tabs__tab" tabindex="-1" role="tab"
-                  aria-selected="false" aria-controls="panel-resultats">
-            Résultats
-          </button>
-        </li>
-      </ul>
-
-      <!-- PANEL 1 : ANALYSE -->
-      <div id="panel-analyse"
-     class="fr-tabs__panel fr-tabs__panel--selected"
-     role="tabpanel"
-     aria-labelledby="tab-analyse"
-     tabindex="0">
-
-        <div class="fr-grid-row fr-grid-row--gutters gofast-grid">
-
-          <!-- IMPORT -->
-          <div class="fr-col-12 fr-col-lg-6" id="import">
-            <div class="fr-card fr-card--no-arrow gofast-card">
-              <div class="fr-card__body">
-                <div class="fr-card__content">
-                  <h3 class="fr-card__title">Import des fichiers</h3>
-                  <p class="fr-card__desc">
-                    Importe un ou plusieurs fichiers CSV (LAPI, péage, exports, etc.).
-                  </p>
-
-                  <div class="fr-upload-group fr-mt-2w">
-                    <label class="fr-label" for="fileInput">
-                      Sélectionner des fichiers CSV
-                      <span class="fr-hint-text">Format CSV recommandé (UTF-8). Tu peux en sélectionner plusieurs.</span>
-                    </label>
-                    <input class="fr-upload" type="file" id="fileInput" accept=".csv,text/csv" multiple />
-                  </div>
-
-                  <div id="dropzone" class="fr-mt-2w fr-p-2w"
-                       style="border: 2px dashed var(--border-default-grey); border-radius: 8px;">
-                    <strong>Glisse-dépose</strong> tes fichiers ici
-                    <div class="fr-hint-text fr-mt-1v">Astuce : tu peux aussi déposer des fichiers directement depuis l’explorateur.</div>
-                  </div>
-
-                  <div class="fr-mt-2w">
-                    <button id="btnParse" class="fr-btn" disabled>Analyser les fichiers</button>
-                  </div>
-
-                  <div class="fr-mt-2w">
-                    <p class="fr-text--sm fr-mb-1v"><strong>Fichiers chargés :</strong></p>
-                    <ul id="fileList" class="fr-m-0 fr-pl-2w"></ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- PARAMÈTRES -->
-          <div class="fr-col-12 fr-col-lg-6" id="parametres">
-            <div class="fr-card fr-card--no-arrow gofast-card">
-              <div class="fr-card__body">
-                <div class="fr-card__content">
-                  <h3 class="fr-card__title">Paramètres</h3>
-                  <p class="fr-card__desc">Ajuste les seuils de détection.</p>
-
-                  <div class="fr-input-group">
-                    <label class="fr-label" for="thresholdSeconds">
-                      Seuil temporel (secondes)
-                      <span class="fr-hint-text">Intervalle max entre véhicules pour considérer un co-passage.</span>
-                    </label>
-                    <input class="fr-input" type="number" id="thresholdSeconds" min="5" max="900" step="5" value="90" />
-                  </div>
-
-                  <div class="fr-input-group">
-                    <label class="fr-label" for="minVehicles">
-                      Nombre minimal de véhicules
-                      <span class="fr-hint-text">2 = duo suspect, 3 = ouvreuse/porteuse/suiveuse.</span>
-                    </label>
-                    <input class="fr-input" type="number" id="minVehicles" min="2" max="10" step="1" value="3" />
-                  </div>
-
-                  <div class="fr-input-group">
-                    <label class="fr-label" for="minSites">
-                      Nombre minimal de sites (lieux)
-                      <span class="fr-hint-text">Répétition sur plusieurs lieux = suspicion renforcée.</span>
-                    </label>
-                    <input class="fr-input" type="number" id="minSites" min="1" max="50" step="1" value="2" />
-                  </div>
-
-                  <div class="fr-toggle fr-mt-2w">
-                    <input type="checkbox" class="fr-toggle__input" id="toggleStrictOrder" checked>
-                    <label class="fr-toggle__label" for="toggleStrictOrder">
-                      Favoriser l’ordre stable (ouvreuse → porteuse → suiveuse)
-                    </label>
-                  </div>
-
-                  <div class="fr-mt-2w fr-text--sm fr-hint-text">
-                    Note : GoFast met en évidence des corrélations. Il ne “décide” pas à ta place.
-                  </div>
-                </div>
-              </div>
-
-              <div class="fr-card__footer fr-px-2w fr-pb-2w">
-                <button id="btnShowResults" class="fr-btn fr-btn--secondary" disabled>
-                  Voir les résultats
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- PANEL 2 : RÉSULTATS -->
-      <div id="panel-resultats"
-     class="fr-tabs__panel"
-     role="tabpanel"
-     aria-labelledby="tab-resultats"
-     tabindex="0"
-     hidden>
-
-        <div class="fr-grid-row fr-grid-row--gutters">
-          <div class="fr-col-12" id="resultats">
-            <div class="fr-card fr-card--no-arrow gofast-card">
-              <div class="fr-card__body">
-                <div class="fr-card__content">
-                  <h3 class="fr-card__title">Résultats</h3>
-                  <p class="fr-card__desc">
-                    Groupes détectés, triés par score décroissant.
-                  </p>
-
-                  <div class="fr-mb-2w">
-                    <span class="fr-badge fr-badge--info" id="statusBadge">En attente d’import</span>
-                    <span class="fr-ml-2w fr-text--sm fr-hint-text" id="statsText"></span>
-                  </div>
-
-                  <div class="fr-table fr-table--bordered fr-table--layout-fixed">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th scope="col">Score</th>
-                          <th scope="col">Véhicules</th>
-                          <th scope="col">Sites</th>
-                          <th scope="col">Fenêtre max</th>
-                          <th scope="col">Détails</th>
-                        </tr>
-                      </thead>
-                      <tbody id="resultsBody">
-                        <tr>
-                          <td colspan="5" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <p class="fr-text--xs fr-hint-text fr-mt-2w">
-                    * La portabilité / changement de plaques / incertitudes de saisie peuvent fausser les corrélations. Vérifie toujours avec tes sources.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="fr-mt-2w">
-          <button id="btnBackToAnalyse" class="fr-btn fr-btn--secondary">Retour à l’analyse</button>
-        </div>
-      </div>
-
+    <!-- Faux tabs -->
+    <div class="gofast-tabs" role="tablist" aria-label="Navigation GoFast">
+      <button id="tab-analyse" class="gofast-tab" role="tab" aria-controls="page-analyse" aria-selected="true">
+        Analyse
+      </button>
+      <button id="tab-resultats" class="gofast-tab" role="tab" aria-controls="page-resultats" aria-selected="false">
+        Résultats
+      </button>
     </div>
-  </main>
 
-  <!-- DSFR JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.js" defer></script>
+    <!-- PAGE ANALYSE -->
+    <section id="page-analyse" class="gofast-page" role="tabpanel" aria-labelledby="tab-analyse">
+      <div class="fr-grid-row fr-grid-row--gutters gofast-grid">
+        <!-- IMPORT -->
+        <div class="fr-col-12 fr-col-lg-6">
+          <div class="fr-card fr-card--no-arrow gofast-card">
+            <div class="fr-card__body">
+              <div class="fr-card__content">
+                <h3 class="fr-card__title">Import des fichiers</h3>
+                <p class="fr-card__desc">Importe un ou plusieurs fichiers CSV (LAPI, péage, exports, etc.).</p>
+
+                <div class="fr-upload-group fr-mt-2w">
+                  <label class="fr-label" for="fileInput">
+                    Sélectionner des fichiers CSV
+                    <span class="fr-hint-text">Format CSV recommandé (UTF-8). Tu peux en sélectionner plusieurs.</span>
+                  </label>
+                  <input class="fr-upload" type="file" id="fileInput" accept=".csv,text/csv" multiple />
+                </div>
+
+                <div id="dropzone" class="fr-mt-2w fr-p-2w">
+                  <strong>Glisse-dépose</strong> tes fichiers ici
+                  <div class="fr-hint-text fr-mt-1v">Astuce : tu peux aussi déposer des fichiers directement depuis l’explorateur.</div>
+                </div>
+
+                <div class="fr-mt-2w">
+                  <button id="btnParse" class="fr-btn" disabled>Analyser les fichiers</button>
+                </div>
+
+                <div class="fr-mt-2w">
+                  <p class="fr-text--sm fr-mb-1v"><strong>Fichiers chargés :</strong></p>
+                  <ul id="fileList" class="fr-m-0 fr-pl-2w"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PARAMÈTRES -->
+        <div class="fr-col-12 fr-col-lg-6">
+          <div class="fr-card fr-card--no-arrow gofast-card">
+            <div class="fr-card__body">
+              <div class="fr-card__content">
+                <h3 class="fr-card__title">Paramètres</h3>
+                <p class="fr-card__desc">Ajuste les seuils (conservateurs par défaut).</p>
+
+                <div class="fr-input-group">
+                  <label class="fr-label" for="thresholdSeconds">
+                    Seuil temporel (secondes)
+                    <span class="fr-hint-text">Intervalle max entre véhicules pour considérer un co-passage.</span>
+                  </label>
+                  <input class="fr-input" type="number" id="thresholdSeconds" min="5" max="900" step="5" value="90" />
+                </div>
+
+                <div class="fr-input-group">
+                  <label class="fr-label" for="minVehicles">
+                    Nombre minimal de véhicules
+                    <span class="fr-hint-text">2 = duo suspect, 3 = ouvreuse/porteuse/suiveuse.</span>
+                  </label>
+                  <input class="fr-input" type="number" id="minVehicles" min="2" max="10" step="1" value="3" />
+                </div>
+
+                <div class="fr-input-group">
+                  <label class="fr-label" for="minSites">
+                    Nombre minimal de sites (lieux)
+                    <span class="fr-hint-text">Répétition sur plusieurs lieux = suspicion renforcée.</span>
+                  </label>
+                  <input class="fr-input" type="number" id="minSites" min="1" max="50" step="1" value="2" />
+                </div>
+
+                <div class="fr-toggle fr-mt-2w">
+                  <input type="checkbox" class="fr-toggle__input" id="toggleStrictOrder" checked>
+                  <label class="fr-toggle__label" for="toggleStrictOrder">
+                    Favoriser l’ordre stable (ouvreuse → porteuse → suiveuse)
+                  </label>
+                </div>
+
+                <div class="fr-mt-2w fr-text--sm fr-hint-text">
+                  Note : GoFast met en évidence des corrélations. Il ne “décide” pas à ta place.
+                </div>
+              </div>
+            </div>
+
+            <div class="fr-card__footer fr-px-2w fr-pb-2w">
+              <button id="btnShowResults" class="fr-btn fr-btn--secondary" disabled>Voir les résultats</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE RÉSULTATS -->
+    <section id="page-resultats" class="gofast-page" role="tabpanel" aria-labelledby="tab-resultats" hidden>
+      <div class="fr-grid-row fr-grid-row--gutters">
+        <div class="fr-col-12">
+          <div class="fr-card fr-card--no-arrow">
+            <div class="fr-card__body">
+              <div class="fr-card__content">
+                <h3 class="fr-card__title">Résultats</h3>
+                <p class="fr-card__desc">Groupes détectés, triés par score décroissant.</p>
+
+                <div class="fr-mb-2w">
+                  <span class="fr-badge fr-badge--info" id="statusBadge">En attente d’import</span>
+                  <span class="fr-ml-2w fr-text--sm fr-hint-text" id="statsText"></span>
+                </div>
+
+                <div class="fr-table fr-table--bordered fr-table--layout-fixed">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col">Score</th>
+                        <th scope="col">Véhicules</th>
+                        <th scope="col">Sites</th>
+                        <th scope="col">Fenêtre max</th>
+                        <th scope="col">Détails</th>
+                      </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                      <tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <p class="fr-text--xs fr-hint-text fr-mt-2w">
+                  * La portabilité / changement de plaques / incertitudes de saisie peuvent fausser les corrélations. Vérifie toujours avec tes sources.
+                </p>
+
+                <div class="fr-mt-2w">
+                  <button id="btnBackToAnalyse" class="fr-btn fr-btn--secondary">Retour à l’analyse</button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script>
   "use strict";
 
   // ============================================================
-  // CONFIG / ÉTAT
+  // DOM
   // ============================================================
-  const state = {
-    files: [],
-    rows: [],
-    groups: []
-  };
-
   const els = {
+    btnDemo: document.getElementById("btnDemo"),
+    btnReset: document.getElementById("btnReset"),
+    btnParse: document.getElementById("btnParse"),
+    btnShowResults: document.getElementById("btnShowResults"),
+    btnBackToAnalyse: document.getElementById("btnBackToAnalyse"),
+
     fileInput: document.getElementById("fileInput"),
     dropzone: document.getElementById("dropzone"),
     fileList: document.getElementById("fileList"),
-    btnParse: document.getElementById("btnParse"),
-    btnReset: document.getElementById("btnReset"),
-    btnDemo: document.getElementById("btnDemo"),
 
     thresholdSeconds: document.getElementById("thresholdSeconds"),
     minVehicles: document.getElementById("minVehicles"),
     minSites: document.getElementById("minSites"),
     toggleStrictOrder: document.getElementById("toggleStrictOrder"),
 
-    resultsBody: document.getElementById("resultsBody"),
     statusBadge: document.getElementById("statusBadge"),
     statsText: document.getElementById("statsText"),
+    resultsBody: document.getElementById("resultsBody"),
 
-    btnShowResults: document.getElementById("btnShowResults"),
-    btnBackToAnalyse: document.getElementById("btnBackToAnalyse"),
     tabAnalyse: document.getElementById("tab-analyse"),
     tabResultats: document.getElementById("tab-resultats"),
-    panelAnalyse: document.getElementById("panel-analyse"),
-    panelResultats: document.getElementById("panel-resultats"),
+    pageAnalyse: document.getElementById("page-analyse"),
+    pageResultats: document.getElementById("page-resultats"),
   };
 
+  // ============================================================
+  // LAYOUT (hauteur header)
+  // ============================================================
   function updateLayoutHeights() {
-  const header = document.querySelector("header.fr-header");
-  const h = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+    const header = document.querySelector("header.fr-header");
+    const h = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+    const safe = (h && h > 60) ? h : 160;
+    document.documentElement.style.setProperty("--gofast-header-h", `${safe}px`);
+  }
+  function scheduleLayoutMeasure() {
+    requestAnimationFrame(() => {
+      updateLayoutHeights();
+      requestAnimationFrame(updateLayoutHeights);
+    });
+  }
+  window.addEventListener("resize", scheduleLayoutMeasure);
+  window.addEventListener("load", scheduleLayoutMeasure);
 
-  // Fallback si mesure foireuse
-  const safe = (h && h > 60) ? h : 160;
+  // ============================================================
+  // NAV (pages)
+  // ============================================================
+  function goToPage(which) {
+    const isAnalyse = which === "analyse";
 
-  document.documentElement.style.setProperty("--gofast-header-h", `${safe}px`);
-}
+    els.tabAnalyse.setAttribute("aria-selected", String(isAnalyse));
+    els.tabResultats.setAttribute("aria-selected", String(!isAnalyse));
 
-// Mesure au bon moment
-function scheduleLayoutMeasure() {
-  requestAnimationFrame(() => {
-    updateLayoutHeights();
-    // 2e passe (fonts/layout DSFR peuvent bouger après)
-    requestAnimationFrame(updateLayoutHeights);
-  });
-}
+    els.pageAnalyse.hidden = !isAnalyse;
+    els.pageResultats.hidden = isAnalyse;
 
-window.addEventListener("resize", scheduleLayoutMeasure);
-window.addEventListener("load", scheduleLayoutMeasure);
+    (isAnalyse ? els.tabAnalyse : els.tabResultats).focus();
+  }
 
+  els.tabAnalyse.addEventListener("click", () => goToPage("analyse"));
+  els.tabResultats.addEventListener("click", () => goToPage("resultats"));
+  els.btnBackToAnalyse.addEventListener("click", () => goToPage("analyse"));
+  els.btnShowResults.addEventListener("click", () => goToPage("resultats"));
+
+  // ============================================================
+  // ÉTAT
+  // ============================================================
+  const state = { files: [], rows: [] };
 
   function setStatus(type, text) {
     const map = {
@@ -351,43 +345,15 @@ window.addEventListener("load", scheduleLayoutMeasure);
     els.statusBadge.textContent = text;
   }
 
-  function goToTab(which) {
-  const isAnalyse = which === "analyse";
-
-  // tabs (ARIA)
-  els.tabAnalyse.setAttribute("aria-selected", String(isAnalyse));
-  els.tabAnalyse.tabIndex = isAnalyse ? 0 : -1;
-
-  els.tabResultats.setAttribute("aria-selected", String(!isAnalyse));
-  els.tabResultats.tabIndex = !isAnalyse ? 0 : -1;
-
-  // panels (le point clé)
-  els.panelAnalyse.hidden = !isAnalyse;
-  els.panelResultats.hidden = isAnalyse;
-
-  els.panelAnalyse.classList.toggle("fr-tabs__panel--selected", isAnalyse);
-  els.panelResultats.classList.toggle("fr-tabs__panel--selected", !isAnalyse);
-
-  (isAnalyse ? els.tabAnalyse : els.tabResultats).focus();
-}
-
-
   // ============================================================
-  // UTILITAIRES
+  // UTIL
   // ============================================================
-  function normalizePlate(plate) {
-    if (!plate) return "";
-    return String(plate).toUpperCase().replace(/[^A-Z0-9]/g, "");
-  }
-
-  function safeTrim(s) {
-    return (s ?? "").toString().trim();
-  }
+  function safeTrim(s) { return (s ?? "").toString().trim(); }
+  function normalizePlate(plate) { return plate ? String(plate).toUpperCase().replace(/[^A-Z0-9]/g, "") : ""; }
 
   function parseDateToMs(input) {
     const s = safeTrim(input);
     if (!s) return NaN;
-
     const t = Date.parse(s);
     if (!Number.isNaN(t)) return t;
 
@@ -406,9 +372,7 @@ window.addEventListener("load", scheduleLayoutMeasure);
     }[c]));
   }
 
-  // ============================================================
-  // MODULE PARSER (CSV ultra simple v1)
-  // ============================================================
+  // CSV simple
   function splitCsvLine(line) {
     const out = [];
     let cur = "", inQ = false;
@@ -417,13 +381,9 @@ window.addEventListener("load", scheduleLayoutMeasure);
       if (ch === '"') {
         if (inQ && line[i+1] === '"') { cur += '"'; i++; }
         else inQ = !inQ;
-      } else if (ch === ";" && !inQ) {
+      } else if ((ch === ";" || ch === ",") && !inQ) {
         out.push(cur); cur = "";
-      } else if (ch === "," && !inQ) {
-        out.push(cur); cur = "";
-      } else {
-        cur += ch;
-      }
+      } else cur += ch;
     }
     out.push(cur);
     return out.map(v => safeTrim(v));
@@ -447,7 +407,6 @@ window.addEventListener("load", scheduleLayoutMeasure);
 
     const headers = split(lines[0]).map(h => h.toLowerCase());
     const rows = [];
-
     for (let i = 1; i < lines.length; i++) {
       const cols = split(lines[i]);
       const obj = {};
@@ -459,7 +418,6 @@ window.addEventListener("load", scheduleLayoutMeasure);
 
   function normalizeRow(raw, sourceName) {
     const keys = Object.keys(raw);
-
     const get = (...candidates) => {
       for (const c of candidates) {
         const k = keys.find(k => k.includes(c));
@@ -471,10 +429,9 @@ window.addEventListener("load", scheduleLayoutMeasure);
     const plate = normalizePlate(get("plaque","immat","immatric","immatriculation","plate"));
     const dateStr = get("date_heure","datetime","dateheure","horodatage","date","heure","timestamp");
     const site = safeTrim(get("lieu","site","point","poste","peage","péage","lapi","camera","caméra","localisation","adresse"));
-
     const ts = parseDateToMs(dateStr);
-    if (!plate || Number.isNaN(ts) || !site) return null;
 
+    if (!plate || Number.isNaN(ts) || !site) return null;
     return { plate, ts, site, source: sourceName || "import", raw };
   }
 
@@ -488,7 +445,7 @@ window.addEventListener("load", scheduleLayoutMeasure);
   }
 
   // ============================================================
-  // MODULE ENGINE (détection v1)
+  // ENGINE + SCORE
   // ============================================================
   function detectGroups(rows, cfg) {
     const thr = cfg.thresholdSeconds * 1000;
@@ -499,15 +456,15 @@ window.addEventListener("load", scheduleLayoutMeasure);
       if (!bySite.has(r.site)) bySite.set(r.site, []);
       bySite.get(r.site).push(r);
     }
-    for (const [site, arr] of bySite.entries()) arr.sort((a,b) => a.ts - b.ts);
+    for (const arr of bySite.values()) arr.sort((a,b) => a.ts - b.ts);
 
     const groups = [];
     for (const [site, arr] of bySite.entries()) {
       let start = 0;
       for (let end = 0; end < arr.length; end++) {
         while (arr[end].ts - arr[start].ts > thr) start++;
-
         const window = arr.slice(start, end + 1);
+
         const uniq = new Map();
         for (const w of window) if (!uniq.has(w.plate)) uniq.set(w.plate, w);
 
@@ -520,9 +477,6 @@ window.addEventListener("load", scheduleLayoutMeasure);
     return groups;
   }
 
-  // ============================================================
-  // MODULE SCORING (v1 simple)
-  // ============================================================
   function scoreAndMerge(groups, cfg) {
     const minSites = cfg.minSites;
     const strictOrder = cfg.strictOrder;
@@ -547,9 +501,7 @@ window.addEventListener("load", scheduleLayoutMeasure);
 
       if (strictOrder) {
         const firsts = m.occurrences.map(o => o.vehicles[0]?.plate).filter(Boolean);
-        const mode = firsts.sort((a,b)=>
-          firsts.filter(x=>x===b).length - firsts.filter(x=>x===a).length
-        )[0];
+        const mode = firsts.sort((a,b)=> firsts.filter(x=>x===b).length - firsts.filter(x=>x===a).length)[0];
         const stability = firsts.filter(x => x === mode).length / Math.max(1, firsts.length);
         score += Math.round(stability * 5);
       }
@@ -561,8 +513,17 @@ window.addEventListener("load", scheduleLayoutMeasure);
     return out;
   }
 
+  function getConfig() {
+    return {
+      thresholdSeconds: Number(els.thresholdSeconds.value || 90),
+      minVehicles: Number(els.minVehicles.value || 3),
+      minSites: Number(els.minSites.value || 2),
+      strictOrder: !!els.toggleStrictOrder.checked
+    };
+  }
+
   // ============================================================
-  // MODULE UI
+  // RENDER
   // ============================================================
   function renderFileList() {
     els.fileList.innerHTML = "";
@@ -605,55 +566,27 @@ window.addEventListener("load", scheduleLayoutMeasure);
     }).join("");
   }
 
-  function getConfig() {
-    return {
-      thresholdSeconds: Number(els.thresholdSeconds.value || 90),
-      minVehicles: Number(els.minVehicles.value || 3),
-      minSites: Number(els.minSites.value || 2),
-      strictOrder: !!els.toggleStrictOrder.checked
-    };
-  }
-
-  function resetAll() {
-    state.files = [];
-    state.rows = [];
-    state.groups = [];
-    els.fileInput.value = "";
-    renderFileList();
-    els.statsText.textContent = "";
-    setStatus("info", "En attente d’import");
-    els.resultsBody.innerHTML = `<tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td></tr>`;
-    els.btnShowResults.disabled = true;
-    goToTab("analyse");
-  }
-
   // ============================================================
-  // ÉVÈNEMENTS
+  // EVENTS
   // ============================================================
-  els.tabAnalyse.addEventListener("click", () => goToTab("analyse"));
-  els.tabResultats.addEventListener("click", () => goToTab("resultats"));
-  els.btnBackToAnalyse.addEventListener("click", () => goToTab("analyse"));
-  els.btnShowResults.addEventListener("click", () => goToTab("resultats"));
-
   els.fileInput.addEventListener("change", (e) => {
-    const files = [...(e.target.files || [])];
-    state.files = files;
+    state.files = [...(e.target.files || [])];
     renderFileList();
-    setStatus(files.length ? "info" : "info", files.length ? "Fichiers prêts" : "En attente d’import");
+    setStatus(state.files.length ? "info" : "info", state.files.length ? "Fichiers prêts" : "En attente d’import");
   });
 
-  ["dragenter","dragover"].forEach(evt =>
+  ["dragenter","dragover"].forEach(evt => {
     els.dropzone.addEventListener(evt, (e) => {
       e.preventDefault(); e.stopPropagation();
-      els.dropzone.style.borderColor = "var(--border-action-high-blue-france)";
-    })
-  );
-  ["dragleave","drop"].forEach(evt =>
+      els.dropzone.classList.add("is-dragover");
+    });
+  });
+  ["dragleave","drop"].forEach(evt => {
     els.dropzone.addEventListener(evt, (e) => {
       e.preventDefault(); e.stopPropagation();
-      els.dropzone.style.borderColor = "var(--border-default-grey)";
-    })
-  );
+      els.dropzone.classList.remove("is-dragover");
+    });
+  });
   els.dropzone.addEventListener("drop", (e) => {
     const files = [...(e.dataTransfer.files || [])].filter(f => f.name.toLowerCase().endsWith(".csv"));
     if (files.length) {
@@ -663,14 +596,13 @@ window.addEventListener("load", scheduleLayoutMeasure);
     }
   });
 
-  els.btnReset.addEventListener("click", resetAll);
+  els.btnReset.addEventListener("click", () => resetAll());
 
-  els.btnDemo.addEventListener("click", async () => {
+  els.btnDemo.addEventListener("click", () => {
     const demo = [
       { plaque:"AA-123-AA", date_heure:"2026-02-12 10:01:10", site:"LAPI A6 - PK12" },
       { plaque:"BB-456-BB", date_heure:"2026-02-12 10:01:40", site:"LAPI A6 - PK12" },
       { plaque:"CC-789-CC", date_heure:"2026-02-12 10:02:05", site:"LAPI A6 - PK12" },
-
       { plaque:"AA-123-AA", date_heure:"2026-02-12 10:24:10", site:"Péage X" },
       { plaque:"BB-456-BB", date_heure:"2026-02-12 10:24:50", site:"Péage X" },
       { plaque:"CC-789-CC", date_heure:"2026-02-12 10:25:20", site:"Péage X" },
@@ -687,7 +619,7 @@ window.addEventListener("load", scheduleLayoutMeasure);
     renderResults(results);
 
     els.btnShowResults.disabled = false;
-    goToTab("resultats");
+    goToPage("resultats");
   });
 
   els.btnParse.addEventListener("click", async () => {
@@ -719,7 +651,7 @@ window.addEventListener("load", scheduleLayoutMeasure);
       renderResults(results);
 
       els.btnShowResults.disabled = false;
-      goToTab("resultats");
+      goToPage("resultats");
     } catch (err) {
       console.error(err);
       setStatus("error", "Erreur d’analyse");
@@ -727,10 +659,26 @@ window.addEventListener("load", scheduleLayoutMeasure);
     }
   });
 
-  // Init
-// Init
-resetAll();
-scheduleLayoutMeasure();
+  // ============================================================
+  // RESET
+  // ============================================================
+  function resetAll() {
+    state.files = [];
+    state.rows = [];
+    els.fileInput.value = "";
+    renderFileList();
+    els.statsText.textContent = "";
+    setStatus("info", "En attente d’import");
+    els.resultsBody.innerHTML = `<tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td></tr>`;
+    els.btnShowResults.disabled = true;
+    goToPage("analyse");
+  }
+
+  // ============================================================
+  // INIT
+  // ============================================================
+  resetAll();
+  scheduleLayoutMeasure();
   </script>
 </body>
 </html>
