@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GoFast — Détection des convois de véhicules</title>
+  <title>GoFast - Détection des convois de véhicules</title>
 
   <!-- Favicon (DSFR) -->
   <link rel="icon" type="image/png"
@@ -13,20 +13,41 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/utility/utilities.min.css">
 
-  <style>
-    /* Pas de scroll global : scroll interne dans les cartes */
-    html, body { height: 100%; }
-    body { overflow: hidden; }
+<style>
+  html, body { height: 100%; }
+  body { margin: 0; }
 
-    /* Ajuste si ton header est plus/moins haut */
-    main { height: calc(100vh - 140px); }
-    .fr-tabs__panel { height: calc(100vh - 220px); overflow: hidden; }
+  /* On bloque le scroll page, mais on scroll dans le contenu */
+  body { overflow: hidden; }
 
-    .gofast-grid { height: 100%; }
-    .gofast-card { height: 100%; display: flex; flex-direction: column; }
-    .gofast-card .fr-card__body { flex: 1 1 auto; min-height: 0; }
-    .gofast-card .fr-card__content { overflow: auto; }
-  </style>
+  /* Layout plein écran robuste */
+  main {
+    height: calc(100vh - var(--gofast-header-h, 0px));
+    overflow: hidden;
+  }
+
+  /* Tabs = colonne (onglets en haut, contenu scrollable en dessous) */
+  .fr-tabs {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* Le panel devient la zone scrollable */
+  .fr-tabs__panel {
+    flex: 1 1 auto;
+    overflow: auto;        /* ✅ au lieu de hidden */
+    min-height: 0;         /* ✅ indispensable pour scroll en flex */
+  }
+
+  /* Conserver les 2 cartes côte à côte et même hauteur */
+  .gofast-grid { min-height: 100%; }
+  .gofast-card { height: 100%; display: flex; flex-direction: column; }
+  .gofast-card .fr-card__body { flex: 1 1 auto; min-height: 0; }
+  .gofast-card .fr-card__content { overflow: auto; min-height: 0; }
+</style>
+
 </head>
 
 <body>
@@ -43,6 +64,7 @@
                   Ministère<br>de l’Intérieur
                 </p>
               </div>
+              <div class="fr-header__navbar"></div>
             </div>
 
             <div class="fr-header__service">
@@ -282,6 +304,13 @@
     panelAnalyse: document.getElementById("panel-analyse"),
     panelResultats: document.getElementById("panel-resultats"),
   };
+
+  function updateLayoutHeights() {
+  const header = document.querySelector("header.fr-header");
+  const h = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+  document.documentElement.style.setProperty("--gofast-header-h", `${h}px`);
+}
+window.addEventListener("resize", updateLayoutHeights);
 
   function setStatus(type, text) {
     const map = {
@@ -665,6 +694,7 @@
   });
 
   // Init
+  updateLayoutHeights();
   resetAll();
   </script>
 </body>
