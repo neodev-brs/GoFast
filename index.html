@@ -22,9 +22,10 @@
 
   /* Layout plein écran robuste */
   main {
-    height: calc(100vh - var(--gofast-header-h, 0px));
-    overflow: hidden;
-  }
+  height: calc(100vh - var(--gofast-header-h, 160px)); /* fallback réel */
+  overflow: hidden;
+}
+
 
   /* Tabs = colonne (onglets en haut, contenu scrollable en dessous) */
   .fr-tabs {
@@ -308,9 +309,25 @@
   function updateLayoutHeights() {
   const header = document.querySelector("header.fr-header");
   const h = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
-  document.documentElement.style.setProperty("--gofast-header-h", `${h}px`);
+
+  // Fallback si mesure foireuse
+  const safe = (h && h > 60) ? h : 160;
+
+  document.documentElement.style.setProperty("--gofast-header-h", `${safe}px`);
 }
-window.addEventListener("resize", updateLayoutHeights);
+
+// Mesure au bon moment
+function scheduleLayoutMeasure() {
+  requestAnimationFrame(() => {
+    updateLayoutHeights();
+    // 2e passe (fonts/layout DSFR peuvent bouger après)
+    requestAnimationFrame(updateLayoutHeights);
+  });
+}
+
+window.addEventListener("resize", scheduleLayoutMeasure);
+window.addEventListener("load", scheduleLayoutMeasure);
+
 
   function setStatus(type, text) {
     const map = {
@@ -694,8 +711,9 @@ window.addEventListener("resize", updateLayoutHeights);
   });
 
   // Init
-  updateLayoutHeights();
-  resetAll();
+// Init
+resetAll();
+scheduleLayoutMeasure();
   </script>
 </body>
 </html>
