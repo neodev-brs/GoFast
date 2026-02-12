@@ -16,8 +16,6 @@
 
 <body>
   <!-- HEADER DSFR -->
-  <body>
-  <!-- HEADER DSFR -->
   <header role="banner" class="fr-header">
     <div class="fr-header__body">
       <div class="fr-container">
@@ -29,7 +27,11 @@
                   Ministère<br>de l’Intérieur
                 </p>
               </div>
-              <div class="fr-header__navbar"></div>
+              <div class="fr-header__navbar">
+                <button class="fr-btn--menu fr-btn" data-fr-opened="false" aria-controls="modal-menu" aria-haspopup="menu" title="Menu">
+                  Menu
+                </button>
+              </div>
             </div>
 
             <div class="fr-header__service">
@@ -57,12 +59,16 @@
       </div>
     </div>
 
-    <!-- ✅ Bandeau "navigation" vide pour garder liseret + ombre -->
-    <div class="fr-header__menu">
+    <!-- MENU (optionnel) -->
+    <div class="fr-header__menu fr-modal" id="modal-menu" aria-labelledby="modal-menu-title">
       <div class="fr-container">
-        <nav class="fr-nav" role="navigation" aria-label="Navigation principale">
+        <button class="fr-btn--close fr-btn" aria-controls="modal-menu" title="Fermer">Fermer</button>
+        <div class="fr-header__menu-links"></div>
+        <nav class="fr-nav" role="navigation" aria-label="Menu principal">
           <ul class="fr-nav__list">
-            <!-- vide volontairement -->
+            <li class="fr-nav__item"><a class="fr-nav__link" href="#import">Import</a></li>
+            <li class="fr-nav__item"><a class="fr-nav__link" href="#parametres">Paramètres</a></li>
+            <li class="fr-nav__item"><a class="fr-nav__link" href="#resultats">Résultats</a></li>
           </ul>
         </nav>
       </div>
@@ -70,6 +76,14 @@
   </header>
 
   <main class="fr-container fr-my-4w">
+    <!-- BANNIÈRE CONFIDENTIALITÉ -->
+    <div class="fr-alert fr-alert--info fr-mb-3w" role="alert">
+      <h3 class="fr-alert__title">Traitement local</h3>
+      <p>
+        Les fichiers sont analysés <strong>uniquement dans ton navigateur</strong>.
+        Aucune donnée n’est envoyée sur Internet.
+      </p>
+    </div>
 
     <!-- GRID -->
     <div class="fr-grid-row fr-grid-row--gutters">
