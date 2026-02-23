@@ -212,7 +212,7 @@
                   <div class="fr-toggle fr-toggle--sm fr-m-0">
                     <input type="checkbox" class="fr-toggle__input" id="toggleModeEnquete">
                     <label class="fr-toggle__label" for="toggleModeEnquete">
-                      Vue avancée
+                      Détails
                     </label>
                   </div>
                 </div>
@@ -621,7 +621,7 @@ function renderCurrent() {
   const isEnquete = !!els.toggleModeEnquete?.checked;
 
   if (isEnquete) {
-    setStatus("info", "Vue avancée");
+    setStatus("info", "Vue détaillée");
     renderResultsEnquete(state.rawGroups);
   } else {
     // Synthèse (ton rendu actuel)
