@@ -64,6 +64,18 @@ dialog.fr-modal::backdrop {
   box-shadow: 0 8px 32px rgba(0,0,0,.15);
 }
 
+.gofast-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9998;
+}
+
+/* La modale au-dessus du backdrop */
+#fr-theme-modal{ z-index: 9999; }
+
 </style>
 
 </head>
@@ -286,6 +298,7 @@ dialog.fr-modal::backdrop {
     </div>
   </main>
 
+<div id="gofast-backdrop" class="gofast-backdrop" hidden></div>
 <dialog id="fr-theme-modal" class="fr-modal" aria-labelledby="fr-theme-modal-title">
   <div class="fr-container fr-container--fluid fr-container-md">
     <div class="fr-grid-row fr-grid-row--center">
@@ -374,6 +387,42 @@ dialog.fr-modal::backdrop {
 
   syncRadios();
   if (btn) btn.addEventListener('click', syncRadios);
+})();
+</script>
+
+<script>
+(function () {
+  const dialog = document.getElementById('fr-theme-modal');
+  const openBtn = document.getElementById('btnTheme');
+  const closeBtn = dialog?.querySelector('.fr-btn--close');
+  const backdrop = document.getElementById('gofast-backdrop');
+
+  if (!dialog || !openBtn || !closeBtn || !backdrop) return;
+
+  function openModal() {
+    backdrop.hidden = false;
+    // force le vrai mode modal si possible
+    if (!dialog.open && dialog.showModal) dialog.showModal();
+    else dialog.setAttribute('open', '');
+  }
+
+  function closeModal() {
+    backdrop.hidden = true;
+    if (dialog.open && dialog.close) dialog.close();
+    else dialog.removeAttribute('open');
+  }
+
+  openBtn.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
+  closeBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
+  backdrop.addEventListener('click', closeModal);
+
+  // ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !backdrop.hidden) closeModal();
+  });
+
+  // sécurité: si la modale se ferme autrement, on cache le backdrop
+  dialog.addEventListener('close', () => { backdrop.hidden = true; });
 })();
 </script>
 
