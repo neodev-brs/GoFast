@@ -44,6 +44,19 @@
   #resultats .fr-card__title{
     margin-top: 0 !important;
   }
+
+  /* Blur arrière-plan comme site officiel DSFR */
+.fr-modal::backdrop {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Ombre douce supplémentaire */
+.fr-modal__body {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
 </style>
 
 </head>
@@ -281,7 +294,7 @@
             <div id="fr-display" class="fr-display">
               <fieldset class="fr-fieldset" id="display-fieldset">
                 <legend class="fr-fieldset__legend--regular fr-fieldset__legend" id="display-fieldset-legend">
-                  Choisis un thème pour l’apparence du site.
+                  Choisissez un thème pour personnaliser l’apparence du site.
                 </legend>
 
                 <div class="fr-fieldset__element">
