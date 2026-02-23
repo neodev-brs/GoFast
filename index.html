@@ -13,6 +13,25 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/utility/utilities.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/icons/icons.min.css">
+
+<!-- STYLE-->
+  <style>
+  /* GoFast – cartes avec formulaires : on évite le comportement "card marketing" DSFR */
+  #import .fr-card__content,
+  #parametres .fr-card__content {
+    display: block !important; /* stop flex qui pousse le titre en bas */
+  }
+
+  /* au cas où DSFR utilise order/margin auto */
+  #import .fr-card__title,
+  #import .fr-card__desc,
+  #parametres .fr-card__title,
+  #parametres .fr-card__desc {
+    order: -1 !important;
+    margin-top: 0 !important;
+  }
+</style>
+
 </head>
 
 <body>
