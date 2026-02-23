@@ -289,99 +289,108 @@
     }[c]));
   }
 
-  // ============================================================
-  // MODULE PARSER (CSV ultra simple v1)
-  // ============================================================
-  function splitCsvLine(line) {
-    // CSV simple: gère guillemets basiques. Suffisant v1.
-    const out = [];
-    let cur = "", inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
-        else inQ = !inQ;
-      } else if (ch === ";" && !inQ) {
-        out.push(cur); cur = "";
-      } else if (ch === "," && !inQ) {
-        // certains exports sont en virgule
-        out.push(cur); cur = "";
-      } else {
-        cur += ch;
-      }
-    }
-    out.push(cur);
-    return out.map(v => safeTrim(v));
-  }
-
-  function detectDelimiter(headerLine) {
-    // petite heuristique
-    const semi = (headerLine.match(/;/g) || []).length;
-    const comma = (headerLine.match(/,/g) || []).length;
-    return semi >= comma ? ";" : ",";
-  }
-
-  function parseCsv(text) {
-    const lines = text.replace(/\r/g, "").split("\n").filter(l => l.trim().length);
-    if (lines.length < 2) return [];
-
-    const delim = detectDelimiter(lines[0]);
-    const split = (line) => {
-      // reuse splitCsvLine but force delimiter by replacing other with sentinel
-      // simple: if delim=";" keep ; else keep ,
-      if (delim === ";") return splitCsvLine(line.replace(/,/g, "§")).map(x => x.replace(/§/g, ","));
-      return splitCsvLine(line.replace(/;/g, "§")).map(x => x.replace(/§/g, ";"));
-    };
-
-    const headers = split(lines[0]).map(h => h.toLowerCase());
-    const rows = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const cols = split(lines[i]);
-      const obj = {};
-      headers.forEach((h, idx) => obj[h] = cols[idx] ?? "");
-      rows.push(obj);
-    }
-    return rows;
-  }
-
   function normalizeRow(raw, sourceName) {
-    // v1: on cherche des champs “plaque”, “immat”, “date”, “heure”, “lieu”, “site”
-    const keys = Object.keys(raw);
+  const keys = Object.keys(raw);
 
-    const get = (...candidates) => {
-      for (const c of candidates) {
-        const k = keys.find(k => k.includes(c));
-        if (k) return raw[k];
+  const get = (...candidates) => {
+    for (const c of candidates) {
+      const k = keys.find(k => k.includes(c));
+      if (k) return raw[k];
+    }
+    return "";
+  };
+
+  const plate = normalizePlate(get("plaque","immat","immatric","immatriculation","plate"));
+
+  // Date/heure : soit "date_heure", soit (date + heure)
+  let dateStr =
+    get("date_heure","datetime","dateheure","horodatage","timestamp");
+
+  const d = safeTrim(get("date"));
+  const h = safeTrim(get("heure","time"));
+  if (!safeTrim(dateStr) && d) {
+    dateStr = h ? `${d} ${h}` : d;
+  }
+
+  const site = safeTrim(get(
+    "lieu","site","point","poste","peage","péage","lapi","camera","caméra",
+    "localisation","adresse"
+  ));
+
+  const ts = parseDateToMs(dateStr);
+
+  if (!plate || Number.isNaN(ts) || !site) return null;
+
+  return { plate, ts, site, source: sourceName || "import", raw };
+}
+
+// ============================================================
+// MODULE PARSER
+// ============================================================
+function stripBom(s) {
+  return s && s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
+}
+
+function detectDelimiter(headerLine) {
+  const line = headerLine || "";
+  const semi = (line.match(/;/g) || []).length;
+  const comma = (line.match(/,/g) || []).length;
+  return semi >= comma ? ";" : ",";
+}
+
+function splitCsvLine(line, delim) {
+  const out = [];
+  let cur = "";
+  let inQ = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+
+    if (ch === '"') {
+      // double quote escaped
+      if (inQ && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQ = !inQ;
       }
-      return "";
-    };
+      continue;
+    }
 
-    const plate = normalizePlate(get("plaque","immat","immatric","immatriculation","plate"));
-    const dateStr = get("date_heure","datetime","dateheure","horodatage","date","heure","timestamp");
-    const site = safeTrim(get("lieu","site","point","poste","peage","péage","lapi","camera","caméra","localisation","adresse"));
+    if (ch === delim && !inQ) {
+      out.push(cur);
+      cur = "";
+      continue;
+    }
 
-    const ts = parseDateToMs(dateStr);
-
-    if (!plate || Number.isNaN(ts) || !site) return null;
-
-    return {
-      plate,
-      ts,
-      site,
-      source: sourceName || "import",
-      raw
-    };
+    cur += ch;
   }
 
-  async function readFileAsText(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsText(file, "utf-8");
-    });
+  out.push(cur);
+  return out.map(v => safeTrim(v));
+}
+
+function parseCsv(text) {
+  const raw = stripBom(String(text || "")).replace(/\r/g, "");
+  const lines = raw.split("\n").filter(l => l.trim().length);
+  if (lines.length < 2) return [];
+
+  const delim = detectDelimiter(lines[0]);
+
+  const headers = splitCsvLine(lines[0], delim)
+    .map(h => safeTrim(h).toLowerCase());
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCsvLine(lines[i], delim);
+    const obj = {};
+    for (let c = 0; c < headers.length; c++) {
+      obj[headers[c]] = cols[c] ?? "";
+    }
+    rows.push(obj);
   }
+  return rows;
+}
 
   // ============================================================
   // MODULE ENGINE (détection v1)
@@ -611,12 +620,16 @@
 
     try {
       const allRows = [];
+      let ignored = 0;
+
       for (const f of state.files) {
         const txt = await readFileAsText(f);
         const parsed = parseCsv(txt);
+
         for (const r of parsed) {
           const n = normalizeRow(r, f.name);
           if (n) allRows.push(n);
+          else ignored++;
         }
       }
 
@@ -627,7 +640,7 @@
       const results = scoreAndMerge(rawGroups, cfg);
 
       setStatus("success", "Analyse terminée");
-      els.statsText.textContent = `${state.rows.length} passages normalisés • ${results.length} groupes`;
+      els.statsText.textContent = `${state.rows.length} passages normalisés • ${ignored} ignorés • ${results.length} groupes`;
 
       renderResults(results, cfg);
     } catch (err) {
