@@ -45,36 +45,18 @@
     margin-top: 0 !important;
   }
 
-/* Backdrop natif <dialog> */
-dialog.fr-modal::backdrop {
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  background: rgba(0,0,0,.35);
+/* Flou derrière la modale (dialog) */
+dialog.fr-modal[open]::backdrop,
+dialog#fr-theme-modal[open]::backdrop {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  background: rgba(0, 0, 0, 0.35) !important;
 }
 
-/* Backdrop DSFR/polyfill (selon navigateurs) */
-.fr-modal__backdrop {
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  background: rgba(0,0,0,.35);
-}
-
-/* Ombre douce */
+/* Ombre douce de la fenêtre */
 .fr-modal__body {
-  box-shadow: 0 8px 32px rgba(0,0,0,.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
-
-.gofast-backdrop{
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.35);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  z-index: 9998;
-}
-
-/* La modale au-dessus du backdrop */
-#fr-theme-modal{ z-index: 9999; }
 
 </style>
 
@@ -298,7 +280,6 @@ dialog.fr-modal::backdrop {
     </div>
   </main>
 
-<div id="gofast-backdrop" class="gofast-backdrop" hidden></div>
 <dialog id="fr-theme-modal" class="fr-modal" aria-labelledby="fr-theme-modal-title">
   <div class="fr-container fr-container--fluid fr-container-md">
     <div class="fr-grid-row fr-grid-row--center">
@@ -322,7 +303,14 @@ dialog.fr-modal::backdrop {
                     <input value="light" type="radio" id="fr-radios-theme-light" name="fr-radios-theme">
                     <label class="fr-label" for="fr-radios-theme-light">Thème clair</label>
                     <div class="fr-radio-rich__pictogram">
-                      <span class="fr-icon-sun-line fr-icon--xl" aria-hidden="true"></span>
+                      <svg aria-hidden="true" class="fr-artwork" viewBox="0 0 80 80" width="80px" height="80px">
+                        <use class="fr-artwork-decorative"
+                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/sun.svg#artwork-decorative"></use>
+                        <use class="fr-artwork-minor"
+                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/sun.svg#artwork-minor"></use>
+                        <use class="fr-artwork-major"
+                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/sun.svg#artwork-major"></use>
+                      </svg>
                     </div>
                   </div>
                 </div>
@@ -332,7 +320,14 @@ dialog.fr-modal::backdrop {
                     <input value="dark" type="radio" id="fr-radios-theme-dark" name="fr-radios-theme">
                     <label class="fr-label" for="fr-radios-theme-dark">Thème sombre</label>
                     <div class="fr-radio-rich__pictogram">
-                      <span class="fr-icon-moon-line fr-icon--xl" aria-hidden="true"></span>
+                      <svg aria-hidden="true" class="fr-artwork" viewBox="0 0 80 80" width="80px" height="80px">
+                        <use class="fr-artwork-decorative"
+                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/moon.svg#artwork-decorative"></use>
+                        <use class="fr-artwork-minor"
+                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/moon.svg#artwork-minor"></use>
+                        <use class="fr-artwork-major"
+                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/moon.svg#artwork-major"></use>
+                      </svg>
                     </div>
                   </div>
                 </div>
@@ -341,11 +336,17 @@ dialog.fr-modal::backdrop {
                   <div class="fr-radio-group fr-radio-rich">
                     <input value="system" type="radio" id="fr-radios-theme-system" name="fr-radios-theme">
                     <label class="fr-label" for="fr-radios-theme-system">
-                      Système
-                      <span class="fr-hint-text">Utilise les paramètres système</span>
+                      Système <span class="fr-hint-text">Utilise les paramètres système</span>
                     </label>
                     <div class="fr-radio-rich__pictogram">
-                      <span class="fr-icon-settings-5-line fr-icon--xl" aria-hidden="true"></span>
+                      <svg aria-hidden="true" class="fr-artwork" viewBox="0 0 80 80" width="80px" height="80px">
+                        <use class="fr-artwork-decorative"
+                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/system/system.svg#artwork-decorative"></use>
+                        <use class="fr-artwork-minor"
+                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/system/system.svg#artwork-minor"></use>
+                        <use class="fr-artwork-major"
+                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/system/system.svg#artwork-major"></use>
+                      </svg>
                     </div>
                   </div>
                 </div>
@@ -387,42 +388,6 @@ dialog.fr-modal::backdrop {
 
   syncRadios();
   if (btn) btn.addEventListener('click', syncRadios);
-})();
-</script>
-
-<script>
-(function () {
-  const dialog = document.getElementById('fr-theme-modal');
-  const openBtn = document.getElementById('btnTheme');
-  const closeBtn = dialog?.querySelector('.fr-btn--close');
-  const backdrop = document.getElementById('gofast-backdrop');
-
-  if (!dialog || !openBtn || !closeBtn || !backdrop) return;
-
-  function openModal() {
-    backdrop.hidden = false;
-    // force le vrai mode modal si possible
-    if (!dialog.open && dialog.showModal) dialog.showModal();
-    else dialog.setAttribute('open', '');
-  }
-
-  function closeModal() {
-    backdrop.hidden = true;
-    if (dialog.open && dialog.close) dialog.close();
-    else dialog.removeAttribute('open');
-  }
-
-  openBtn.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
-  closeBtn.addEventListener('click', (e) => { e.preventDefault(); closeModal(); });
-  backdrop.addEventListener('click', closeModal);
-
-  // ESC
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !backdrop.hidden) closeModal();
-  });
-
-  // sécurité: si la modale se ferme autrement, on cache le backdrop
-  dialog.addEventListener('close', () => { backdrop.hidden = true; });
 })();
 </script>
 
