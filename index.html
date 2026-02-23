@@ -648,6 +648,8 @@ function renderCurrent() {
     state.rows = [];
     state.groups = [];
     state.hasSeenEnquete = false;
+    els.toggleModeEnquete.checked = false;
+    els.toggleModeEnquete.disabled = true;
     els.fileInput.value = "";
     renderFileList();
     els.statsText.textContent = "";
@@ -708,6 +710,12 @@ function renderCurrent() {
     const cfg = getConfig();
     state.rawGroups = detectGroups(state.rows, cfg);
     state.results = scoreAndMerge(state.rawGroups, cfg);
+    if (state.results.length > 0) {
+      els.toggleModeEnquete.disabled = false;
+    } else {
+      els.toggleModeEnquete.checked = false;
+      els.toggleModeEnquete.disabled = true;
+    }
     renderCurrent();
   });
 
@@ -756,6 +764,12 @@ function renderCurrent() {
       const cfg = getConfig();
       state.rawGroups = detectGroups(state.rows, cfg);
       state.results = scoreAndMerge(state.rawGroups, cfg);
+      if (state.results.length > 0) {
+        els.toggleModeEnquete.disabled = false;
+      } else {
+        els.toggleModeEnquete.checked = false;
+        els.toggleModeEnquete.disabled = true;
+      }
 
       setStatus("success", "Analyse terminée");
       els.statsText.textContent = `${state.rows.length} passages normalisés • ${ignored} ignorés • ${state.results.length} groupes`;
