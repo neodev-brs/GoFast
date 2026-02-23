@@ -263,7 +263,8 @@
     rows: [],       // lignes normalisées (toutes sources confondues)
     groups: [],      // groupes de convoi détectés
     rawGroups: [],
-    results: []
+    results: [],
+    hasSeenEnquete: false
   };
 
   const els = {
@@ -621,10 +622,14 @@ function renderCurrent() {
   const isEnquete = !!els.toggleModeEnquete?.checked;
 
   if (isEnquete) {
+    state.hasSeenEnquete = true;
     setStatus("info", "Vue détaillée");
     renderResultsEnquete(state.rawGroups);
   } else {
-    // Synthèse (ton rendu actuel)
+    // IMPORTANT : afficher "Vue synthétique" uniquement si on a déjà coché une fois
+    if (state.hasSeenEnquete) {
+      setStatus("info", "Vue synthétique");
+    }
     renderResults(state.results, getConfig());
   }
 }
@@ -642,6 +647,7 @@ function renderCurrent() {
     state.files = [];
     state.rows = [];
     state.groups = [];
+    state.hasSeenEnquete = false;
     els.fileInput.value = "";
     renderFileList();
     els.statsText.textContent = "";
