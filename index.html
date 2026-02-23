@@ -80,18 +80,18 @@
             <div class="fr-header__tools-links">
               <ul class="fr-btns-group fr-btns-group--sm">
                 <li>
-                  <button id="btnDemo" class="fr-btn fr-btn--secondary">Charger un jeu de démo</button>
+                  <button id="btnDemo" class="fr-btn fr-btn--secondary">Démonstration</button>
                 </li>
                 <li>
                   <button id="btnReset" class="fr-btn fr-btn--secondary">Réinitialiser</button>
                 </li>
                 <li>
-                  <button class="fr-btn fr-btn--tertiary fr-btn--display"
+                  <button id=btnTheme class="fr-btn fr-btn--tertiary fr-btn--display"
                           aria-controls="fr-theme-modal"
                           data-fr-opened="false"
                           title="Paramètres d'affichage"
                           type="button">
-                    Thème
+                    Paramètres d’affichage
                   </button>
                 </li>
               </ul>
@@ -266,13 +266,15 @@
     </div>
   </main>
 
-  <dialog id="fr-theme-modal" class="fr-modal" aria-labelledby="fr-theme-modal-title">
+  <div class="fr-modal" id="fr-theme-modal" aria-labelledby="fr-theme-modal-title" role="dialog">
   <div class="fr-container fr-container--fluid fr-container-md">
     <div class="fr-grid-row fr-grid-row--center">
       <div class="fr-col-12 fr-col-md-6 fr-col-lg-4">
         <div class="fr-modal__body">
           <div class="fr-modal__header">
-            <button aria-controls="fr-theme-modal" title="Fermer" type="button" class="fr-btn--close fr-btn">Fermer</button>
+            <button class="fr-btn--close fr-btn" title="Fermer" aria-controls="fr-theme-modal" type="button">
+              Fermer
+            </button>
           </div>
 
           <div class="fr-modal__content">
@@ -280,9 +282,9 @@
               Paramètres d’affichage
             </h1>
 
-            <div id="fr-display" class="fr-display">
-              <fieldset class="fr-fieldset" id="display-fieldset">
-                <legend class="fr-fieldset__legend--regular fr-fieldset__legend" id="display-fieldset-legend">
+            <div class="fr-display" id="fr-display">
+              <fieldset class="fr-fieldset" id="display-fieldset" aria-labelledby="display-fieldset-legend">
+                <legend class="fr-fieldset__legend fr-fieldset__legend--regular" id="display-fieldset-legend">
                   Choisis un thème pour l’apparence du site.
                 </legend>
 
@@ -318,37 +320,35 @@
       </div>
     </div>
   </div>
-</dialog>
+</div>
 
   <!-- DSFR JS -->
   <script src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.js" defer></script>
 
   <script>
-  (function () {
-    const radios = document.querySelectorAll('input[name="fr-radios-theme"]');
-    if (!radios.length) return;
+(function () {
+  const radios = document.querySelectorAll('input[name="fr-radios-theme"]');
+  const btn = document.getElementById('btnTheme');
+  if (!radios.length) return;
 
-    function getCurrentScheme() {
-      // DSFR stocke généralement dans localStorage la clé "scheme"
-      try {
-        return localStorage.getItem('scheme') || document.documentElement.getAttribute('data-fr-scheme') || 'system';
-      } catch (e) {
-        return document.documentElement.getAttribute('data-fr-scheme') || 'system';
-      }
+  function getCurrentScheme() {
+    try {
+      return localStorage.getItem('scheme')
+        || document.documentElement.getAttribute('data-fr-scheme')
+        || 'system';
+    } catch (e) {
+      return document.documentElement.getAttribute('data-fr-scheme') || 'system';
     }
+  }
 
-    function syncRadios() {
-      const scheme = getCurrentScheme();
-      radios.forEach(r => r.checked = (r.value === scheme));
-    }
+  function syncRadios() {
+    const scheme = getCurrentScheme();
+    radios.forEach(r => r.checked = (r.value === scheme));
+  }
 
-    // Sync au chargement
-    syncRadios();
-
-    // Resync quand on ouvre la modale (au cas où ça change ailleurs)
-    const modal = document.getElementById('fr-theme-modal');
-    if (modal) modal.addEventListener('dsfr.disclose', syncRadios);
-  })();
+  syncRadios();
+  if (btn) btn.addEventListener('click', syncRadios);
+})();
 </script>
 
   <script>
