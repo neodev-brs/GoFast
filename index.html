@@ -86,7 +86,7 @@
                   <button id="btnReset" class="fr-btn fr-btn--secondary">Réinitialiser</button>
                 </li>
                 <li>
-                  <button id=btnTheme class="fr-btn fr-btn--tertiary fr-btn--display"
+                  <button id="btnTheme" class="fr-btn fr-btn--tertiary fr-btn--display"
                           aria-controls="fr-theme-modal"
                           data-fr-opened="false"
                           title="Paramètres d'affichage"
@@ -266,25 +266,21 @@
     </div>
   </main>
 
-  <div class="fr-modal" id="fr-theme-modal" aria-labelledby="fr-theme-modal-title" role="dialog">
+<dialog id="fr-theme-modal" class="fr-modal" aria-labelledby="fr-theme-modal-title">
   <div class="fr-container fr-container--fluid fr-container-md">
     <div class="fr-grid-row fr-grid-row--center">
       <div class="fr-col-12 fr-col-md-6 fr-col-lg-4">
         <div class="fr-modal__body">
           <div class="fr-modal__header">
-            <button class="fr-btn--close fr-btn" title="Fermer" aria-controls="fr-theme-modal" type="button">
-              Fermer
-            </button>
+            <button aria-controls="fr-theme-modal" title="Fermer" type="button" class="fr-btn--close fr-btn">Fermer</button>
           </div>
 
           <div class="fr-modal__content">
-            <h1 id="fr-theme-modal-title" class="fr-modal__title">
-              Paramètres d’affichage
-            </h1>
+            <h1 id="fr-theme-modal-title" class="fr-modal__title">Paramètres d’affichage</h1>
 
-            <div class="fr-display" id="fr-display">
-              <fieldset class="fr-fieldset" id="display-fieldset" aria-labelledby="display-fieldset-legend">
-                <legend class="fr-fieldset__legend fr-fieldset__legend--regular" id="display-fieldset-legend">
+            <div id="fr-display" class="fr-display">
+              <fieldset class="fr-fieldset" id="display-fieldset">
+                <legend class="fr-fieldset__legend--regular fr-fieldset__legend" id="display-fieldset-legend">
                   Choisis un thème pour l’apparence du site.
                 </legend>
 
@@ -306,24 +302,24 @@
                   <div class="fr-radio-group fr-radio-rich">
                     <input value="system" type="radio" id="fr-radios-theme-system" name="fr-radios-theme">
                     <label class="fr-label" for="fr-radios-theme-system">
-                      Système
-                      <span class="fr-hint-text">Utilise les paramètres système</span>
+                      Système <span class="fr-hint-text">Utilise les paramètres système</span>
                     </label>
                   </div>
                 </div>
 
               </fieldset>
             </div>
-          </div>
 
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+</dialog>
 
   <!-- DSFR JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.js" defer></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.module.min.js"></script>
+  <script nomodule src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.nomodule.min.js"></script>
 
   <script>
 (function () {
