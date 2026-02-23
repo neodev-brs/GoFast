@@ -275,6 +275,14 @@
     return (s ?? "").toString().trim();
   }
 
+  function normalizeHeaderName(h) {
+  // Nettoie : casse, espaces, accents, caractères chelous
+  return safeTrim(h)
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")  // enlève accents
+    .replace(/[^\w]+/g, "_");                          // remplace tout le reste par _
+}
+
   function parseDateToMs(input) {
     // v1: essaie ISO ou formats classiques. Ajustera selon tes exports.
     const s = safeTrim(input);
@@ -324,9 +332,9 @@
   }
 
   const site = safeTrim(get(
-    "lieu","site","point","poste","peage","péage","lapi","camera","caméra",
-    "localisation","adresse"
-  ));
+  "lieu","site","point","poste","peage","lapi","camera",
+  "localisation","adresse"
+));
 
   const ts = parseDateToMs(dateStr);
 
@@ -389,7 +397,7 @@ function parseCsv(text) {
   const delim = detectDelimiter(lines[0]);
 
   const headers = splitCsvLine(lines[0], delim)
-    .map(h => safeTrim(h).toLowerCase());
+    .map(h => normalizeHeaderName(h));
 
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
