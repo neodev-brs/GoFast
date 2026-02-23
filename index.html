@@ -38,23 +38,29 @@
     height: auto !important;
   }
 
-  /* Bonus : évite les marges cheloues qui donnent l’impression que ça "descend" */
+  /* Bonus : évite les marges qui donnent l’impression que ça "descend" */
   #import .fr-card__title,
   #parametres .fr-card__title,
   #resultats .fr-card__title{
     margin-top: 0 !important;
   }
 
-/* Flou derrière la modale (dialog) */
-dialog.fr-modal[open]::backdrop,
-dialog#fr-theme-modal[open]::backdrop {
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  background: rgba(0, 0, 0, 0.35) !important;
+/* Flou sur backdrop natif <dialog> */
+#fr-theme-modal::backdrop {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.35);
 }
 
-/* Ombre douce de la fenêtre */
-.fr-modal__body {
+/* Fallback si le navigateur/DSFR n'utilise pas ::backdrop (overlay div) */
+.fr-modal__backdrop {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Ombre douce sur la modale */
+#fr-theme-modal .fr-modal__body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
