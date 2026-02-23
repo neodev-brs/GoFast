@@ -11,16 +11,6 @@
     } catch (e) {}
   })();
 </script>
-
-<style>
-  /* Empêche le flash blanc avant chargement DSFR */
-  html { background: #f6f6f6; }               /* fallback "clair" */
-  html[data-fr-scheme="dark"] { background: #0b0b0b; } /* fallback "sombre" */
-
-  /* Bonus: évite que le body repeigne en blanc */
-  body { background: transparent; }
-</style>
-
   <title>GoFast - Outil de détection des convois de véhicules</title>
 
   <!-- Favicon (DSFR) -->
@@ -28,14 +18,9 @@
         href="https://www.interieur.gouv.fr/themes/custom/dsfr/src/images/logo/favicon.png">
 
   <!-- DSFR -->
-<link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css"></noscript>
-
-<link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/utility/utilities.min.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/utility/utilities.min.css"></noscript>
-
-<link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/icons/icons.min.css" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/icons/icons.min.css"></noscript>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/utility/utilities.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/icons/icons.min.css">
 
 <!-- STYLE-->
 <style>
