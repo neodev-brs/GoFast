@@ -3,6 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('scheme');
+      if (saved) document.documentElement.setAttribute('data-fr-scheme', saved);
+    } catch (e) {}
+  })();
+</script>
   <title>GoFast - Outil de détection des convois de véhicules</title>
 
   <!-- Favicon (DSFR) -->
@@ -257,7 +265,7 @@
 
     </div>
   </main>
-  
+
   <dialog id="fr-theme-modal" class="fr-modal" aria-labelledby="fr-theme-modal-title">
   <div class="fr-container fr-container--fluid fr-container-md">
     <div class="fr-grid-row fr-grid-row--center">
@@ -314,6 +322,34 @@
 
   <!-- DSFR JS -->
   <script src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.min.js" defer></script>
+
+  <script>
+  (function () {
+    const radios = document.querySelectorAll('input[name="fr-radios-theme"]');
+    if (!radios.length) return;
+
+    function getCurrentScheme() {
+      // DSFR stocke généralement dans localStorage la clé "scheme"
+      try {
+        return localStorage.getItem('scheme') || document.documentElement.getAttribute('data-fr-scheme') || 'system';
+      } catch (e) {
+        return document.documentElement.getAttribute('data-fr-scheme') || 'system';
+      }
+    }
+
+    function syncRadios() {
+      const scheme = getCurrentScheme();
+      radios.forEach(r => r.checked = (r.value === scheme));
+    }
+
+    // Sync au chargement
+    syncRadios();
+
+    // Resync quand on ouvre la modale (au cas où ça change ailleurs)
+    const modal = document.getElementById('fr-theme-modal');
+    if (modal) modal.addEventListener('dsfr.disclose', syncRadios);
+  })();
+</script>
 
   <script>
   "use strict";
