@@ -15,19 +15,25 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/utility/icons/icons.min.css">
 
 <!-- STYLE-->
-  <style>
-  /* GoFast – cartes avec formulaires : on évite le comportement "card marketing" DSFR */
-  #import .fr-card__content,
-  #parametres .fr-card__content {
-    display: block !important; /* stop flex qui pousse le titre en bas */
+<style>
+  /* GoFast – cartes avec formulaires : on neutralise le layout "marketing card" DSFR */
+  #import .fr-card__body,
+  #parametres .fr-card__body{
+    display: block !important;
   }
 
-  /* au cas où DSFR utilise order/margin auto */
+  #import .fr-card__content,
+  #parametres .fr-card__content{
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important; /* <= le point clé */
+    height: auto !important;                /* <= évite le "pousse en bas" */
+  }
+
   #import .fr-card__title,
   #import .fr-card__desc,
   #parametres .fr-card__title,
-  #parametres .fr-card__desc {
-    order: -1 !important;
+  #parametres .fr-card__desc{
     margin-top: 0 !important;
   }
 </style>
@@ -175,14 +181,6 @@
                 </label>
               </div>
 
-              <div class="fr-toggle fr-mt-2w">
-                <input type="checkbox" class="fr-toggle__input" id="toggleModeEnquete">
-                <label class="fr-toggle__label" for="toggleModeEnquete">
-                  Mode enquête complexe (afficher toutes les résultats bruts)
-                </label>
-                <p class="fr-hint-text">Par défaut : synthèse (groupes fusionnés et scorés).</p>
-              </div>
-
               <div class="fr-mt-2w fr-text--sm fr-hint-text">
                 Note : GoFast met en évidence des corrélations. Il ne “décide” pas à ta place.
               </div>
@@ -201,9 +199,24 @@
                 Groupes détectés, triés par score décroissant.
               </p>
 
-              <div class="fr-mb-2w">
-                <span class="fr-badge fr-badge--info" id="statusBadge">En attente d’import</span>
-                <span class="fr-ml-2w fr-text--sm fr-hint-text" id="statsText"></span>
+              <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
+
+                <!-- Badge + stats à gauche -->
+                <div class="fr-col">
+                  <span class="fr-badge fr-badge--info" id="statusBadge">En attente d’import</span>
+                  <span class="fr-ml-2w fr-text--sm fr-hint-text" id="statsText"></span>
+                </div>
+
+                <!-- Toggle à droite -->
+                <div class="fr-col-auto">
+                  <div class="fr-toggle fr-toggle--sm fr-m-0">
+                    <input type="checkbox" class="fr-toggle__input" id="toggleModeEnquete">
+                    <label class="fr-toggle__label" for="toggleModeEnquete">
+                      Vue avancée
+                    </label>
+                  </div>
+                </div>
+
               </div>
 
               <div class="fr-table fr-table--bordered fr-table--layout-fixed">
