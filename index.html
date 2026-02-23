@@ -45,23 +45,41 @@
     margin-top: 0 !important;
   }
 
-/* Flou sur backdrop natif <dialog> */
+/* 1) Si le navigateur utilise le backdrop natif du <dialog> */
 #fr-theme-modal::backdrop {
+  background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  background: rgba(0, 0, 0, 0.35);
 }
 
-/* Fallback si le navigateur/DSFR n'utilise pas ::backdrop (overlay div) */
-.fr-modal__backdrop {
+/* 2) Fallback universel : overlay AVANT la modale quand elle est ouverte */
+#fr-theme-modal[open]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  background: rgba(0, 0, 0, 0.35);
+  z-index: 0; /* overlay */
 }
 
-/* Ombre douce sur la modale */
-#fr-theme-modal .fr-modal__body {
+/* 3) On remet le contenu au-dessus */
+#fr-theme-modal[open] .fr-modal__body {
+  position: relative;
+  z-index: 1;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* Enlève le contour/halo focus DSFR uniquement sur le bouton "Paramètres d’affichage" */
+#btnTheme:focus,
+#btnTheme:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Au repos : enlève toute bordure visible si le style tertiary/display en met une */
+#btnTheme {
+  border: 0 !important;
 }
 
 </style>
@@ -308,15 +326,9 @@
                   <div class="fr-radio-group fr-radio-rich">
                     <input value="light" type="radio" id="fr-radios-theme-light" name="fr-radios-theme">
                     <label class="fr-label" for="fr-radios-theme-light">Thème clair</label>
-                    <div class="fr-radio-rich__pictogram">
-                      <svg aria-hidden="true" class="fr-artwork" viewBox="0 0 80 80" width="80px" height="80px">
-                        <use class="fr-artwork-decorative"
-                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/sun.svg#artwork-decorative"></use>
-                        <use class="fr-artwork-minor"
-                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/sun.svg#artwork-minor"></use>
-                        <use class="fr-artwork-major"
-                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/sun.svg#artwork-major"></use>
-                      </svg>
+                    <div class="fr-radio-rich__pictogram" aria-hidden="true">
+                      <img alt="" width="80" height="80"
+                          src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/sun.svg">
                     </div>
                   </div>
                 </div>
@@ -325,15 +337,9 @@
                   <div class="fr-radio-group fr-radio-rich">
                     <input value="dark" type="radio" id="fr-radios-theme-dark" name="fr-radios-theme">
                     <label class="fr-label" for="fr-radios-theme-dark">Thème sombre</label>
-                    <div class="fr-radio-rich__pictogram">
-                      <svg aria-hidden="true" class="fr-artwork" viewBox="0 0 80 80" width="80px" height="80px">
-                        <use class="fr-artwork-decorative"
-                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/moon.svg#artwork-decorative"></use>
-                        <use class="fr-artwork-minor"
-                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/moon.svg#artwork-minor"></use>
-                        <use class="fr-artwork-major"
-                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/moon.svg#artwork-major"></use>
-                      </svg>
+                    <div class="fr-radio-rich__pictogram" aria-hidden="true">
+                      <img alt="" width="80" height="80"
+                          src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/environment/moon.svg">
                     </div>
                   </div>
                 </div>
@@ -344,15 +350,9 @@
                     <label class="fr-label" for="fr-radios-theme-system">
                       Système <span class="fr-hint-text">Utilise les paramètres système</span>
                     </label>
-                    <div class="fr-radio-rich__pictogram">
-                      <svg aria-hidden="true" class="fr-artwork" viewBox="0 0 80 80" width="80px" height="80px">
-                        <use class="fr-artwork-decorative"
-                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/system/system.svg#artwork-decorative"></use>
-                        <use class="fr-artwork-minor"
-                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/system/system.svg#artwork-minor"></use>
-                        <use class="fr-artwork-major"
-                            href="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/system/system.svg#artwork-major"></use>
-                      </svg>
+                    <div class="fr-radio-rich__pictogram" aria-hidden="true">
+                      <img alt="" width="80" height="80"
+                          src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/artwork/pictograms/system/system.svg">
                     </div>
                   </div>
                 </div>
