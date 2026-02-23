@@ -95,6 +95,32 @@
   top: auto !important;
 }
 
+/* --- CENTRAGE MODALE (override DSFR) --- */
+#fr-theme-modal[open]{
+  position: fixed !important;
+  inset: 0 !important;
+  margin: 0 !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  padding: 2rem !important;          /* marge écran */
+  border: 0 !important;
+  background: transparent !important; /* important : laisse voir l’overlay/backdrop */
+}
+
+/* DSFR a parfois un alignement haut via la grille -> on neutralise */
+#fr-theme-modal .fr-grid-row{
+  margin-top: 0 !important;
+}
+
+/* Evite que la modale dépasse en hauteur (petits écrans) */
+#fr-theme-modal .fr-modal__body{
+  max-height: calc(100vh - 4rem);
+  overflow: auto;
+}
+
 </style>
 
 </head>
