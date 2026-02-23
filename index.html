@@ -16,24 +16,24 @@
 
 <!-- STYLE-->
 <style>
-  /* GoFast – cartes avec formulaires : on neutralise le layout "marketing card" DSFR */
+  /* GoFast – on neutralise le layout "marketing card" DSFR qui pousse le contenu en bas */
   #import .fr-card__body,
-  #parametres .fr-card__body{
+  #parametres .fr-card__body,
+  #resultats .fr-card__body{
     display: block !important;
   }
 
   #import .fr-card__content,
-  #parametres .fr-card__content{
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: flex-start !important; /* <= le point clé */
-    height: auto !important;                /* <= évite le "pousse en bas" */
+  #parametres .fr-card__content,
+  #resultats .fr-card__content{
+    display: block !important;     /* <= le plus robuste : plus de flex */
+    height: auto !important;
   }
 
+  /* Bonus : évite les marges cheloues qui donnent l’impression que ça "descend" */
   #import .fr-card__title,
-  #import .fr-card__desc,
   #parametres .fr-card__title,
-  #parametres .fr-card__desc{
+  #resultats .fr-card__title{
     margin-top: 0 !important;
   }
 </style>
