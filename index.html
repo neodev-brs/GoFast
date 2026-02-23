@@ -156,6 +156,14 @@
                 </label>
               </div>
 
+              <div class="fr-toggle fr-mt-2w">
+                <input type="checkbox" class="fr-toggle__input" id="toggleModeEnquete">
+                <label class="fr-toggle__label" for="toggleModeEnquete">
+                  Mode enquête complexe (afficher toutes les résultats bruts)
+                </label>
+                <p class="fr-hint-text">Par défaut : synthèse (groupes fusionnés et scorés).</p>
+              </div>
+
               <div class="fr-mt-2w fr-text--sm fr-hint-text">
                 Note : GoFast met en évidence des corrélations. Il ne “décide” pas à ta place.
               </div>
@@ -221,7 +229,9 @@
   const state = {
     files: [],
     rows: [],       // lignes normalisées (toutes sources confondues)
-    groups: []      // groupes de convoi détectés
+    groups: [],      // groupes de convoi détectés
+    rawGroups: [],
+    results: []
   };
 
   const els = {
@@ -238,6 +248,7 @@
     resultsBody: document.getElementById("resultsBody"),
     statusBadge: document.getElementById("statusBadge"),
     statsText: document.getElementById("statsText"),
+    toggleModeEnquete: document.getElementById("toggleModeEnquete"),
   };
 
   function setStatus(type, text) {
@@ -538,6 +549,46 @@ function parseCsv(text) {
     }).join("");
   }
 
+  function renderResultsEnquete(rawGroups) {
+  if (!rawGroups.length) {
+    els.resultsBody.innerHTML = `
+      <tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucune occurrence détectée.</td></tr>
+    `;
+    return;
+  }
+
+  // 1 ligne = 1 fenêtre brute (site + fenêtre + plaques)
+  els.resultsBody.innerHTML = rawGroups.map((g) => {
+    const windowSec = Math.round((g.tMax - g.tMin) / 1000);
+    const plates = g.vehicles.map(v => v.plate).join(", ");
+    const details =
+      `${escapeHtml(g.site)}<br>` +
+      `${new Date(g.tMin).toLocaleString()} → ${new Date(g.tMax).toLocaleTimeString()}`;
+
+    return `
+      <tr>
+        <td>—</td>
+        <td>${escapeHtml(plates)}</td>
+        <td>1</td>
+        <td>${windowSec}s</td>
+        <td class="fr-text--sm">${details}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+function renderCurrent() {
+  const isEnquete = !!els.toggleModeEnquete?.checked;
+
+  if (isEnquete) {
+    setStatus("info", "Mode enquête");
+    renderResultsEnquete(state.rawGroups);
+  } else {
+    // Synthèse (ton rendu actuel)
+    renderResults(state.results, getConfig());
+  }
+}
+
   function getConfig() {
     return {
       thresholdSeconds: Number(els.thresholdSeconds.value || 90),
@@ -609,10 +660,29 @@ function parseCsv(text) {
     els.statsText.textContent = `${state.rows.length} passages normalisés`;
 
     const cfg = getConfig();
-    const rawGroups = detectGroups(state.rows, cfg);
-    const results = scoreAndMerge(rawGroups, cfg);
-    renderResults(results, cfg);
+    state.rawGroups = detectGroups(state.rows, cfg);
+    state.results = scoreAndMerge(state.rawGroups, cfg);
+    renderCurrent();
   });
+
+  function decodeCsvFileSmart(file) {
+  return file.arrayBuffer().then((buffer) => {
+    // 1) Essai UTF-8 (le plus courant sur les exports modernes)
+    let txt = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
+
+    // Si présence du caractère de remplacement, c'est souvent un mauvais décodage
+    if (txt.includes("�")) {
+      try {
+        txt = new TextDecoder("windows-1252", { fatal: false }).decode(buffer);
+      } catch {
+        // dernier filet : latin1 (souvent accepté)
+        txt = new TextDecoder("iso-8859-1", { fatal: false }).decode(buffer);
+      }
+    }
+
+    return txt;
+  });
+}
 
   els.btnParse.addEventListener("click", async () => {
     if (!state.files.length) return;
@@ -625,8 +695,7 @@ function parseCsv(text) {
 
       for (const f of state.files) {
   // lecture en ANSI (Windows-1252) pour garder les accents (Péage, etc.)
-  const buffer = await f.arrayBuffer();
-  const txt = new TextDecoder("windows-1252").decode(buffer);
+  const txt = await decodeCsvFileSmart(f);
 
   const parsed = parseCsv(txt);
 
@@ -639,20 +708,21 @@ function parseCsv(text) {
 
       state.rows = allRows;
       const cfg = getConfig();
-
-      const rawGroups = detectGroups(state.rows, cfg);
-      const results = scoreAndMerge(rawGroups, cfg);
+      state.rawGroups = detectGroups(state.rows, cfg);
+      state.results = scoreAndMerge(state.rawGroups, cfg);
 
       setStatus("success", "Analyse terminée");
-      els.statsText.textContent = `${state.rows.length} passages normalisés • ${ignored} ignorés • ${results.length} groupes`;
+      els.statsText.textContent = `${state.rows.length} passages normalisés • ${ignored} ignorés • ${state.results.length} groupes`;
 
-      renderResults(results, cfg);
+      renderCurrent();
     } catch (err) {
       console.error(err);
       setStatus("error", "Erreur d’analyse");
       els.statsText.textContent = String(err?.message || err);
     }
   });
+
+  els.toggleModeEnquete.addEventListener("change", renderCurrent);
 
   // Init
   resetAll();
