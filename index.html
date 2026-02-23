@@ -52,17 +52,6 @@
   -webkit-backdrop-filter: blur(6px);
 }
 
-/* 2) Fallback universel : overlay AVANT la modale quand elle est ouverte */
-#fr-theme-modal[open]::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  z-index: 0; /* overlay */
-}
-
 /* 3) On remet le contenu au-dessus */
 #fr-theme-modal[open] .fr-modal__body {
   position: relative;
@@ -90,26 +79,6 @@
   padding: 2rem; /* évite que ça colle aux bords sur petit écran */
 }
 
-/* On enlève le positionnement top forcé */
-#fr-theme-modal {
-  top: auto !important;
-}
-
-/* --- CENTRAGE MODALE (override DSFR) --- */
-#fr-theme-modal[open]{
-  position: fixed !important;
-  inset: 0 !important;
-  margin: 0 !important;
-
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-
-  padding: 2rem !important;          /* marge écran */
-  border: 0 !important;
-  background: transparent !important; /* important : laisse voir l’overlay/backdrop */
-}
-
 /* DSFR a parfois un alignement haut via la grille -> on neutralise */
 #fr-theme-modal .fr-grid-row{
   margin-top: 0 !important;
@@ -119,6 +88,32 @@
 #fr-theme-modal .fr-modal__body{
   max-height: calc(100vh - 4rem);
   overflow: auto;
+}
+
+/* Centrage vertical/hor. SANS casser DSFR (on ne touche pas au <dialog>) */
+#fr-theme-modal[open] .fr-container--fluid {
+  min-height: 100vh;              /* plein écran */
+  display: flex;
+  align-items: center;            /* centre vertical */
+  justify-content: center;        /* centre horizontal */
+}
+
+/* La grille DSFR peut ajouter des marges/alignements, on neutralise */
+#fr-theme-modal[open] .fr-grid-row {
+  width: 100%;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* évite que la modale dépasse sur petit écran */
+#fr-theme-modal .fr-modal__body {
+  max-height: calc(100vh - 4rem);
+  overflow: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15); /* tu peux garder */
+}
+
+#fr-theme-modal::backdrop {
+  background: rgba(0,0,0,.35);
 }
 
 </style>
