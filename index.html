@@ -82,6 +82,19 @@
   border: 0 !important;
 }
 
+/* Centre verticalement la modale thème */
+#fr-theme-modal[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem; /* évite que ça colle aux bords sur petit écran */
+}
+
+/* On enlève le positionnement top forcé */
+#fr-theme-modal {
+  top: auto !important;
+}
+
 </style>
 
 </head>
