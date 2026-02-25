@@ -504,7 +504,7 @@
   }
 
   function normalizeHeaderName(h) {
-  // Nettoie : casse, espaces, accents, caractères chelous
+  // Nettoie : casse, espaces, accents, caractères
   return safeTrim(h)
     .toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")  // enlève accents
@@ -560,6 +560,14 @@ function scoreMeta(percentRaw) {
   }
 
   return { percent, color, level };
+}
+
+function toPercentSaturating(raw, k) {
+  // raw >= 0 ; k règle la “vitesse” à laquelle on monte
+  // percent = 100 * raw / (raw + k)  => jamais > 100
+  raw = Math.max(0, Number(raw) || 0);
+  k = Math.max(1, Number(k) || 10);
+  return (100 * raw) / (raw + k);
 }
 
 function renderScoreBadgeHtml(percentRaw) {
@@ -765,12 +773,36 @@ function parseCsv(text) {
         score += Math.round(stability * 5);
       }
 
-      out.push({
-        score,
-        plates: m.plates,
-        sitesCount,
-        occurrences: m.occurrences
-      });
+      // --- score brut existant ---
+let rawScore = m.occurrences.length * sitesCount;
+
+let stabilityBonus = 0;
+if (strictOrder) {
+  const firsts = m.occurrences.map(o => o.vehicles[0]?.plate).filter(Boolean);
+  const mode = firsts.sort((a,b)=>
+    firsts.filter(x=>x===b).length - firsts.filter(x=>x===a).length
+  )[0];
+  const stability = firsts.filter(x => x === mode).length / Math.max(1, firsts.length);
+  stabilityBonus = stability * 5;              // bonus max ~5
+  rawScore += Math.round(stabilityBonus);
+}
+
+// --- conversion en % absolu (0..100) ---
+// k = “niveau de difficulté” pour atteindre 100.
+// Plus k est grand, plus il faut d’éléments (sites/occurrences) pour monter.
+const k = 12; // <- bon point de départ à ajuster
+const scorePctRaw = toPercentSaturating(rawScore, k);
+
+out.push({
+  scorePctRaw,     // % non arrondi (float)
+  rawScore,        // garde en interne si tu veux debug (pas affiché)
+  plates: m.plates,
+  sitesCount,
+  occurrences: m.occurrences
+});
+
+out.sort((a,b) => b.scorePctRaw - a.scorePctRaw);
+
     }
 
     out.sort((a,b) => b.score - a.score);
@@ -815,8 +847,7 @@ function parseCsv(text) {
       : "";
 
     // % fiable : cap 100, arrondi au 5 sup, basé sur score brut normalisé
-    const percentRaw = (r.score / maxRaw) * 100;
-    const scoreCell = renderScoreBadgeHtml(percentRaw);
+const scoreCell = renderScoreBadgeHtml(r.scorePctRaw);
 
     return `
       <tr>
