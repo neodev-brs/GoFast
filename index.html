@@ -267,6 +267,9 @@
   fill: var(--text-mention-grey);
 }
 
+#orderBadge { white-space: nowrap; }
+#orderHelp { opacity: .85; }
+
 </style>
 
 </head>
@@ -526,20 +529,33 @@
   </div>
 </div>
 
-<!-- COURBE DES ÉCARTS -->
-<div class="fr-col-12" id="gaps">
+<!-- STABILITÉ D’ORDRE -->
+<div class="fr-col-12" id="ordre">
   <div class="fr-card fr-card--no-arrow">
     <div class="fr-card__body">
       <div class="fr-card__content">
-        <h3 class="fr-card__title">Courbe des écarts</h3>
-        <p class="fr-card__desc">Écarts (en secondes) entre véhicules au sein des occurrences.</p>
 
-        <div class="gofast-timeline-wrap">
-          <svg id="gapSvg" class="gofast-timeline" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg>
-          <div id="gapTooltip" class="gofast-tooltip" role="status" aria-live="polite"></div>
+        <div class="fr-grid-row fr-grid-row--middle fr-mb-1w">
+          <div class="fr-col">
+            <h3 class="fr-card__title">Stabilité d’ordre</h3>
+            <p class="fr-card__desc" id="orderDesc">
+              Mesure si le même véhicule ouvre/ferme le groupe sur les occurrences.
+            </p>
+          </div>
+          <div class="fr-col-auto">
+            <span class="fr-badge fr-badge--info" id="orderBadge">—</span>
+          </div>
         </div>
 
-        <p class="fr-text--xs fr-hint-text fr-mt-2w" id="gapLegend"></p>
+        <div class="fr-progress fr-mb-1w" aria-label="Stabilité d’ordre">
+          <div id="orderProgress" class="fr-progress__bar" style="width:0%"></div>
+          <span id="orderValue" class="fr-progress__label">—</span>
+        </div>
+
+        <p class="fr-text--sm fr-m-0" id="orderHelp">
+          Sélectionne une ligne de résultat pour afficher l’indicateur.
+        </p>
+
       </div>
     </div>
   </div>
@@ -1078,7 +1094,7 @@ function renderCurrent() {
       // rafraîchit la timeline si une sélection existe
     if (state.selectedResultIndex >= 0 || !!els.toggleModeEnquete?.checked) {
       renderTimelineForSelection();
-      renderGapCurveForSelection();
+      renderOrderStabilityForSelection();
 }
 }
 
@@ -1091,25 +1107,47 @@ function renderCurrent() {
     };
   }
 
-  function resetAll() {
-    state.files = [];
-    state.rows = [];
-    state.groups = [];
-    state.hasSeenEnquete = false;
-    els.toggleModeEnquete.checked = false;
-    els.toggleModeEnquete.disabled = true;
-    els.fileInput.value = "";
-    renderFileList();
-    els.statsText.textContent = "";
-    setStatus("info", "En attente d’import");
-    els.resultsBody.innerHTML = `<tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td></tr>`;
-    state.selectedResultIndex = -1;
-    document.getElementById("timelineHint")?.style && (document.getElementById("timelineHint").style.display = "");
-    document.getElementById("timelineLegend").textContent = "";
-    document.getElementById("gapLegend").textContent = "";
-    document.getElementById("timelineSvg")?.replaceChildren();
-    document.getElementById("gapSvg")?.replaceChildren();
+function resetAll() {
+  state.files = [];
+  state.rows = [];
+  state.groups = [];
+  state.rawGroups = [];
+  state.results = [];
+  state.hasSeenEnquete = false;
+  state.selectedResultIndex = -1;
+
+  // UI import / état
+  els.toggleModeEnquete.checked = false;
+  els.toggleModeEnquete.disabled = true;
+  els.fileInput.value = "";
+  els.statsText.textContent = "";
+  setStatus("info", "En attente d’import");
+  renderFileList();
+
+  // Tableau résultats
+  els.resultsBody.innerHTML = `
+    <tr><td colspan="6" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td></tr>
+  `;
+
+  // Timeline
+  const hint = document.getElementById("timelineHint");
+  if (hint) hint.style.display = "";
+  document.getElementById("timelineLegend")?.textContent = "";
+  document.getElementById("timelineSvg")?.replaceChildren();
+
+  // Carte "ordre"
+  const bar = document.getElementById("orderProgress");
+  if (bar) bar.style.width = "0%";
+
+  document.getElementById("orderValue")?.textContent = "—";
+  const badge = document.getElementById("orderBadge");
+  if (badge) {
+    badge.className = "fr-badge fr-badge--info";
+    badge.textContent = "—";
   }
+  document.getElementById("orderHelp")?.textContent =
+    "Sélectionne une ligne de résultat pour afficher l’indicateur.";
+}
 
   function bindResultRowSelection() {
   const rows = els.resultsBody.querySelectorAll("tr[data-idx]");
@@ -1140,7 +1178,7 @@ function selectResult(idx) {
   const hint = document.getElementById("timelineHint");
   if (hint) hint.style.display = "none";
 
-  renderGapCurveForSelection();
+  renderOrderStabilityForSelection();
 }
 
 function renderTimelineForSelection() {
@@ -1313,144 +1351,73 @@ function bindTimelineHoverOnly() {
   svg.addEventListener("mouseleave", hideTip);
 }
 
-function renderGapCurveForSelection() {
-  const svg = document.getElementById("gapSvg");
-  const tip = document.getElementById("gapTooltip");
-  const legend = document.getElementById("gapLegend");
-  if (!svg) return;
+function computeOrderStability(occurrences) {
+  // Mesure simple et compréhensible :
+  // - on regarde le "premier véhicule" (chronologique) de chaque occurrence
+  // - stabilité = fréquence du "premier" le plus fréquent
+  if (!occurrences || occurrences.length < 2) return 0;
 
-  while (svg.firstChild) svg.removeChild(svg.firstChild);
-  if (tip) tip.style.display = "none";
+  const firsts = occurrences
+    .map(o => (o.vehicles || []).slice().sort((a,b)=>a.ts-b.ts)[0]?.plate)
+    .filter(Boolean);
+
+  if (!firsts.length) return 0;
+
+  const counts = new Map();
+  firsts.forEach(p => counts.set(p, (counts.get(p) || 0) + 1));
+  const max = Math.max(...counts.values());
+  return (max / firsts.length) * 100; // 0..100
+}
+
+function orderStabilityMeta(pct) {
+  // lecture "enquêteur"
+  if (pct >= 75) return { label: "Ordre très stable", badge: "success", help:
+    "Le même véhicule semble ouvrir (ou fermer) le groupe à la majorité des occurrences : convoi structuré probable." };
+  if (pct >= 45) return { label: "Ordre plutôt stable", badge: "info", help:
+    "Un véhicule revient souvent en tête : cohérence possible, à recouper avec les sites et les fenêtres." };
+  return { label: "Ordre peu stable", badge: "warning", help:
+    "L’ordre varie fortement d’une occurrence à l’autre : coïncidence plus probable (ou données incomplètes)." };
+}
+
+function renderOrderStabilityForSelection() {
+  const bar   = document.getElementById("orderProgress");
+  const val   = document.getElementById("orderValue");
+  const help  = document.getElementById("orderHelp");
+  const badge = document.getElementById("orderBadge");
+  if (!bar || !val || !help || !badge) return;
 
   const isEnquete = !!els.toggleModeEnquete?.checked;
 
-  let occurrences = [];
-  if (isEnquete) {
-    occurrences = state.rawGroups || [];
-  } else {
-    const r = state.results[state.selectedResultIndex];
-    if (!r) return;
-    occurrences = r.occurrences || [];
+  // On l’affiche surtout en vue synthétique (un groupe sélectionné).
+  if (isEnquete || state.selectedResultIndex < 0) {
+    bar.style.width = "0%";
+    val.textContent = "—";
+    badge.className = "fr-badge fr-badge--info";
+    badge.textContent = "—";
+    help.textContent = "Sélectionne une ligne (vue synthétique) pour afficher l’indicateur.";
+    return;
   }
 
-  if (!occurrences.length) return;
-
-  // Pour chaque occurrence : on trie les véhicules par ts, puis on calcule l'écart moyen (sec) entre voisins
-  const points = occurrences.map((o, i) => {
-    const v = [...o.vehicles].sort((a,b)=>a.ts-b.ts);
-    if (v.length < 2) return null;
-
-    const gaps = [];
-    for (let k = 1; k < v.length; k++) gaps.push((v[k].ts - v[k-1].ts) / 1000);
-
-    const avg = gaps.reduce((s,x)=>s+x,0) / gaps.length;
-    return { i, avg, site: o.site, tMin: o.tMin, tMax: o.tMax };
-  }).filter(Boolean);
-
-  if (!points.length) return;
-
-  const W=1000, H=260, padL=60, padR=20, padT=20, padB=30;
-
-  const yMax = Math.max(...points.map(p=>p.avg), 1);
-  const yMin = 0;
-
-  const xFor = (i) => padL + (W - padL - padR) * (i / Math.max(1, points.length - 1));
-  const yFor = (v) => (H - padB) - (H - padT - padB) * ((v - yMin) / (yMax - yMin || 1));
-
-  // axes
-  svg.appendChild(svgLine(padL, padT, padL, H-padB, "gofast-tl-axis"));
-  svg.appendChild(svgLine(padL, H-padB, W-padR, H-padB, "gofast-tl-axis"));
-
- // =========================
-// BARRES + SEUIL + LABELS
-// =========================
-const thr = Number(els.thresholdSeconds.value || 90);
-
-svg.appendChild(svgText(padL, 14, "Écart moyen entre véhicules (secondes)", "gofast-gap-title"));
-svg.appendChild(svgText(padL, 30, "Barre basse = convoi serré • Ligne = seuil", "gofast-gap-sub"));
-
-[0, yMax/2, yMax].forEach(val => {
-  const y = yFor(val);
-  svg.appendChild(svgLine(padL, y, W-padR, y, "gofast-tl-line"));
-  svg.appendChild(svgText(8, y + 4, `${Math.round(val)}s`, "gofast-gap-tick"));
-});
-
-const yThr = yFor(Math.min(thr, yMax));
-const thrLine = svgLine(padL, yThr, W-padR, yThr, "gofast-tl-axis");
-thrLine.setAttribute("stroke", "var(--border-action-high-blue-france)");
-thrLine.setAttribute("stroke-dasharray", "6 6");
-svg.appendChild(thrLine);
-svg.appendChild(svgText(W-padR-120, yThr - 6, `Seuil: ${thr}s`, "gofast-gap-tick"));
-
-const barW = Math.max(10, (W - padL - padR) / points.length - 10);
-
-points.forEach((p, idx) => {
-  const x = xFor(p.i) - barW/2;
-  const y = yFor(p.avg);
-  const h = (H - padB) - y;
-
-  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  rect.setAttribute("x", x);
-  rect.setAttribute("y", y);
-  rect.setAttribute("width", barW);
-  rect.setAttribute("height", h);
-
-  const ok = p.avg <= thr;
-  rect.setAttribute("fill", ok ? "var(--background-action-low-blue-france)" : "var(--background-contrast-warning)");
-  rect.setAttribute("stroke", "var(--border-default-grey)");
-  rect.setAttribute("rx", "4");
-
-  svg.appendChild(rect);
-});
-
-  // barres + tooltip
-points.forEach((p) => {
-  const x = xFor(p.i) - barW / 2;
-  const y = yFor(p.avg);
-  const h = (H - padB) - y;
-
-  const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  rect.setAttribute("x", x);
-  rect.setAttribute("y", y);
-  rect.setAttribute("width", barW);
-  rect.setAttribute("height", h);
-
-  const ok = p.avg <= thr;
-  rect.setAttribute("fill", ok ? "var(--background-action-low-blue-france)" : "var(--background-contrast-warning)");
-  rect.setAttribute("stroke", "var(--border-default-grey)");
-  rect.setAttribute("rx", "4");
-
-  rect.dataset.txt =
-    `Écart moyen: ${Math.round(p.avg)}s • ${p.site} • ` +
-    `${new Date(p.tMin).toLocaleTimeString()} → ${new Date(p.tMax).toLocaleTimeString()}`;
-
-  svg.appendChild(rect);
-
-  // Tooltip
-  rect.addEventListener("mouseenter", (e) => {
-    if (!tip) return;
-    tip.textContent = rect.dataset.txt;
-    tip.style.display = "block";
-
-    const wrap = svg.closest(".gofast-timeline-wrap");
-    if (wrap) positionTooltipInWrap(e, wrap, tip);
-  });
-
-  rect.addEventListener("mousemove", (e) => {
-    if (!tip) return;
-    const wrap = svg.closest(".gofast-timeline-wrap");
-    if (wrap) positionTooltipInWrap(e, wrap, tip);
-  });
-
-  rect.addEventListener("mouseleave", () => {
-    if (!tip) return;
-    tip.style.display = "none";
-  });
-});
-
-  if (legend) {
-    legend.textContent = `Nombre de points: ${points.length} • Écart max observé: ${Math.round(yMax)}s`;
+  const r = state.results[state.selectedResultIndex];
+  if (!r || !r.occurrences?.length) {
+    bar.style.width = "0%";
+    val.textContent = "—";
+    badge.className = "fr-badge fr-badge--info";
+    badge.textContent = "—";
+    help.textContent = "Aucune occurrence exploitable pour calculer la stabilité d’ordre.";
+    return;
   }
+
+  const pctRaw = computeOrderStability(r.occurrences);
+  const pct = Math.round(pctRaw);
+
+  const meta = orderStabilityMeta(pct);
+
+  bar.style.width = `${pct}%`;
+  val.textContent = `${pct}%`;
+  badge.className = `fr-badge fr-badge--${meta.badge}`;
+  badge.textContent = meta.label;
+  help.textContent = meta.help;
 }
 
   // ============================================================
