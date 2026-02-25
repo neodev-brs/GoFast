@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script>
-  (function () {
+  ;(function () {
     try {
       var saved = localStorage.getItem('scheme');
       if (saved) document.documentElement.setAttribute('data-fr-scheme', saved);
@@ -631,7 +631,7 @@
   <script nomodule src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.nomodule.min.js"></script>
 
   <script>
-(function () {
+;(function () {
   const radios = document.querySelectorAll('input[name="fr-radios-theme"]');
   const btn = document.getElementById('btnTheme');
   if (!radios.length) return;
@@ -658,8 +658,6 @@
 
   <script>
   "use strict";
-
-  console.log("GoFast JS chargé OK");
 
   // ============================================================
   // CONFIG / ÉTAT
