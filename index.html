@@ -132,6 +132,18 @@
   content: none !important;
 }
 
+.gofast-score-wrap{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:center;   /* centre le texte */
+  gap:.25rem;
+}
+
+.gofast-score-level{
+  font-size:.75rem;
+  opacity:.8;
+}
+
 </style>
 
 </head>
@@ -301,7 +313,7 @@
             <div class="fr-card__content">
               <h3 class="fr-card__title">Résultats</h3>
               <p class="fr-card__desc">
-                Groupes détectés, triés par score décroissant.
+                Groupes détectés, triés par pourcentage de probabilité décroissant.
               </p>
 
               <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
@@ -328,7 +340,7 @@
                 <table>
                   <thead>
                     <tr>
-                      <th scope="col">Score</th>
+                      <th scope="col">Probabilité (en %)/th>
                       <th scope="col">Véhicules</th>
                       <th scope="col">Sites</th>
                       <th scope="col">Fenêtre max</th>
