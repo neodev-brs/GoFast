@@ -484,7 +484,7 @@
                   </thead>
                   <tbody id="resultsBody">
                     <tr>
-                      <td colspan="5" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td>
+                      <td colspan="6" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -688,6 +688,17 @@
     statsText: document.getElementById("statsText"),
     toggleModeEnquete: document.getElementById("toggleModeEnquete"),
   };
+
+  // DIAG : si un id est manquant, le script s'arrête et plus rien ne marche
+for (const [k, v] of Object.entries(els)) {
+  if (!v) console.error("❌ Élément introuvable :", k);
+}
+
+if (!els.fileInput || !els.dropzone || !els.btnParse || !els.btnReset || !els.btnDemo) {
+  console.error("⛔ UI incomplète : vérifie les ids / balises HTML.");
+  // stop proprement, au lieu de planter partout
+  return;
+}
 
   function setStatus(type, text) {
     // type: info | success | warning | error
