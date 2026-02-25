@@ -144,6 +144,29 @@
   opacity:.8;
 }
 
+/* Colonnes étroites */
+.col-small{
+  width:80px;
+  white-space:nowrap;
+  text-align:center;
+}
+
+/* Colonne lieu */
+.col-lieu{
+  width:180px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* Détails sur une seule ligne */
+.col-details{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:100%;
+}
+
 </style>
 
 </head>
@@ -340,10 +363,11 @@
                 <table>
                   <thead>
                     <tr>
-                      <th scope="col">Probabilité (en %)/th>
+                      <th scope="col">Probabilité (en %)</th>
                       <th scope="col">Véhicules</th>
                       <th scope="col">Sites</th>
                       <th scope="col">Fenêtre max</th>
+                      <th scope="col">Lieu</th>
                       <th scope="col">Détails</th>
                     </tr>
                   </thead>
@@ -862,14 +886,15 @@ out.sort((a,b) => b.scorePctRaw - a.scorePctRaw);
 const scoreCell = renderScoreBadgeHtml(r.scorePctRaw);
 
     return `
-      <tr>
-        <td>${scoreCell}</td>
-        <td>${escapeHtml(r.plates.join(", "))}</td>
-        <td>${r.sitesCount}</td>
-        <td>${maxWindowSec}s</td>
-        <td class="fr-text--sm">${details}${more}</td>
-      </tr>
-    `;
+  <tr>
+    <td>${scoreCell}</td>
+    <td>${escapeHtml(r.plates.join(", "))}</td>
+    <td class="col-small">${r.sitesCount}</td>
+    <td class="col-small">${maxWindowSec}s</td>
+    <td class="col-lieu">${escapeHtml(r.occurrences[0]?.site || "")}</td>
+    <td class="col-details">${details}${more}</td>
+  </tr>
+`;
   }).join("");
 }
 
