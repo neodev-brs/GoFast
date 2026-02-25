@@ -491,11 +491,6 @@
               Visualisation temporelle des passages (sélectionne un groupe dans le tableau).
             </p>
           </div>
-          <div class="fr-col-auto">
-            <button id="btnFitTimeline" class="fr-btn fr-btn--secondary fr-btn--sm" type="button" disabled>
-              Réinitialiser le zoom
-            </button>
-          </div>
         </div>
 
         <div class="fr-alert fr-alert--info fr-mb-2w" id="timelineHint">
@@ -641,7 +636,6 @@
     results: [],
     hasSeenEnquete: false,
     selectedResultIndex: -1,
-    timelineView: { start: null, end: null },
   };
 
   const els = {
@@ -1098,7 +1092,6 @@ function renderCurrent() {
     document.getElementById("gapLegend").textContent = "";
     document.getElementById("timelineSvg")?.replaceChildren();
     document.getElementById("gapSvg")?.replaceChildren();
-    state.timelineView = { start: null, end: null };
   }
 
   function bindResultRowSelection() {
@@ -1139,7 +1132,6 @@ function selectResult(idx) {
 function renderTimelineForSelection() {
   const svg = document.getElementById("timelineSvg");
   const legend = document.getElementById("timelineLegend");
-  const btnFit = document.getElementById("btnFitTimeline");
   if (!svg) return;
 
   while (svg.firstChild) svg.removeChild(svg.firstChild);
@@ -1161,47 +1153,32 @@ function renderTimelineForSelection() {
 
   if (!occurrences.length || !plates.length) return;
 
-  // bornes temps globales
-  const tMinAll = Math.min(...occurrences.map(o => o.tMin));
-  const tMaxAll = Math.max(...occurrences.map(o => o.tMax));
-  const spanAll = Math.max(1, tMaxAll - tMinAll);
-
-  // initialise le zoom si pas encore défini
-  if (!state.timelineView.start || !state.timelineView.end) {
-    state.timelineView.start = tMinAll;
-    state.timelineView.end = tMaxAll;
-  }
-
-  // bornes vues (zoom)
-  const tMin = state.timelineView.start;
-  const tMax = state.timelineView.end;
+  // bornes temps
+  const tMin = Math.min(...occurrences.map(o => o.tMin));
+  const tMax = Math.max(...occurrences.map(o => o.tMax));
   const span = Math.max(1, tMax - tMin);
 
-  // dimensions viewBox
   const W = 1000, H = 320;
   const padL = 160, padR = 20, padT = 20, padB = 30;
 
-  const rows = plates.slice(0, 10); // 10 lignes max pour lisibilité
+  const rows = plates.slice(0, 10);
   const rowCount = rows.length;
   const rowGap = (H - padT - padB) / Math.max(1, rowCount);
   const yFor = (i) => padT + rowGap * i + rowGap * 0.5;
 
   const xForTs = (ts) => padL + (W - padL - padR) * ((ts - tMin) / span);
 
-  // Axe X
+  // Axe
   svg.appendChild(svgLine(padL, H - padB, W - padR, H - padB, "gofast-tl-axis"));
-
-  // Graduations simples
   [0, 0.25, 0.5, 0.75, 1].forEach(p => {
     const x = padL + (W - padL - padR) * p;
     svg.appendChild(svgLine(x, H - padB, x, padT, "gofast-tl-line"));
   });
 
-  // labels temps
   svg.appendChild(svgText(padL, H - 10, new Date(tMin).toLocaleTimeString(), "gofast-tl-label"));
   svg.appendChild(svgText(W - padR - 80, H - 10, new Date(tMax).toLocaleTimeString(), "gofast-tl-label"));
 
-  // Groupe pour chaque ligne véhicule (utile pour “dim” au survol)
+  // Lignes véhicules
   rows.forEach((plate, i) => {
     const y = yFor(i);
 
@@ -1209,21 +1186,16 @@ function renderTimelineForSelection() {
     gRow.setAttribute("class", "gofast-tl-row");
     gRow.dataset.plate = plate;
 
-    // label plaque
     gRow.appendChild(svgText(10, y + 4, plate, "gofast-tl-label"));
 
-    // points
     occurrences.forEach((o, occIdx) => {
       const veh = o.vehicles.find(v => v.plate === plate);
       if (!veh) return;
 
-      // ne dessine que si dans la fenêtre zoom
-      if (veh.ts < tMin || veh.ts > tMax) return;
-
       const x = xForTs(veh.ts);
       const dot = svgCircle(x, y, 5, "gofast-tl-dot");
-
       dot.setAttribute("fill", "var(--background-action-low-blue-france)");
+
       dot.dataset.plate = plate;
       dot.dataset.site = o.site;
       dot.dataset.time = new Date(veh.ts).toLocaleString();
@@ -1234,6 +1206,15 @@ function renderTimelineForSelection() {
 
     svg.appendChild(gRow);
   });
+
+  if (legend) {
+    legend.textContent =
+      `Fenêtre affichée : ${new Date(tMin).toLocaleString()} → ${new Date(tMax).toLocaleString()} • ${occurrences.length} occurrence(s)`;
+  }
+
+  // interactions (tooltip + surbrillance)
+  bindTimelineHoverOnly();
+}
 
   // Légende
   if (legend) {
@@ -1246,7 +1227,6 @@ function renderTimelineForSelection() {
 
   // branche interactions (tooltip + highlight + zoom)
   bindTimelineInteractions({ tMinAll, tMaxAll, padL, padR, W });
-}
 
 function svgLine(x1,y1,x2,y2, cls){
   const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -1270,41 +1250,19 @@ function svgCircle(cx,cy,r, cls){
   return el;
 }
 
-function bindTimelineInteractions(ctx) {
+function bindTimelineHoverOnly() {
   const svg = document.getElementById("timelineSvg");
   const tip = document.getElementById("timelineTooltip");
-  const btnFit = document.getElementById("btnFitTimeline");
   if (!svg || !tip) return;
 
-  // --- Tooltip sur les points ---
   const dots = svg.querySelectorAll(".gofast-tl-dot");
   const rows = svg.querySelectorAll(".gofast-tl-row");
-
-  function showTip(e, dot) {
-    const plate = dot.dataset.plate || "";
-    const site = dot.dataset.site || "";
-    const time = dot.dataset.time || "";
-
-    tip.innerHTML = `<strong>${escapeHtml(plate)}</strong><br>${escapeHtml(site)}<br>${escapeHtml(time)}`;
-    tip.style.display = "block";
-    moveTip(e);
-
-    // surbrillance : une ligne véhicule visible, le reste atténué
-    rows.forEach(r => r.classList.add("is-dim"));
-    const row = svg.querySelector(`.gofast-tl-row[data-plate="${CSS.escape(plate)}"]`);
-    if (row) row.classList.remove("is-dim");
-
-    dot.classList.add("is-hover");
-  }
 
   function moveTip(e) {
     const wrap = svg.closest(".gofast-timeline-wrap");
     const rect = wrap.getBoundingClientRect();
-    const x = e.clientX - rect.left + 12;
-    const y = e.clientY - rect.top + 12;
-
-    tip.style.left = `${x}px`;
-    tip.style.top = `${y}px`;
+    tip.style.left = `${e.clientX - rect.left + 12}px`;
+    tip.style.top  = `${e.clientY - rect.top + 12}px`;
   }
 
   function hideTip() {
@@ -1314,67 +1272,28 @@ function bindTimelineInteractions(ctx) {
   }
 
   dots.forEach(dot => {
-    dot.addEventListener("mouseenter", (e) => showTip(e, dot));
+    dot.addEventListener("mouseenter", (e) => {
+      const plate = dot.dataset.plate || "";
+      const site  = dot.dataset.site || "";
+      const time  = dot.dataset.time || "";
+
+      tip.innerHTML = `<strong>${escapeHtml(plate)}</strong><br>${escapeHtml(site)}<br>${escapeHtml(time)}`;
+      tip.style.display = "block";
+      moveTip(e);
+
+      rows.forEach(r => r.classList.add("is-dim"));
+      const row = svg.querySelector(`.gofast-tl-row[data-plate="${CSS.escape(plate)}"]`);
+      if (row) row.classList.remove("is-dim");
+
+      dot.classList.add("is-hover");
+    });
+
     dot.addEventListener("mousemove", moveTip);
     dot.addEventListener("mouseleave", hideTip);
   });
 
-  // --- Zoom à la molette (horizontal) ---
-  svg.addEventListener("wheel", (e) => {
-    e.preventDefault();
-
-    // position curseur -> temps
-    const pt = svg.createSVGPoint();
-    pt.x = e.offsetX * (1000 / svg.clientWidth);
-    pt.y = e.offsetY * (320 / svg.clientHeight);
-
-    const x = pt.x;
-    const padL = ctx.padL;
-    const padR = ctx.padR;
-    const W = ctx.W;
-
-    const clampedX = Math.max(padL, Math.min(W - padR, x));
-    const p = (clampedX - padL) / (W - padL - padR);
-
-    const vStart = state.timelineView.start;
-    const vEnd = state.timelineView.end;
-    const vSpan = Math.max(1, vEnd - vStart);
-    const center = vStart + vSpan * p;
-
-    const zoomIn = e.deltaY < 0;
-    const factor = zoomIn ? 0.85 : 1.15;
-
-    let newSpan = vSpan * factor;
-    const minSpan = 10 * 1000; // 10s mini
-    const maxSpan = Math.max(1, ctx.tMaxAll - ctx.tMinAll);
-
-    newSpan = Math.max(minSpan, Math.min(maxSpan, newSpan));
-
-    let newStart = center - newSpan * p;
-    let newEnd = newStart + newSpan;
-
-    // clamp sur bornes globales
-    if (newStart < ctx.tMinAll) {
-      newStart = ctx.tMinAll;
-      newEnd = newStart + newSpan;
-    }
-    if (newEnd > ctx.tMaxAll) {
-      newEnd = ctx.tMaxAll;
-      newStart = newEnd - newSpan;
-    }
-
-    state.timelineView.start = newStart;
-    state.timelineView.end = newEnd;
-
-    renderTimelineForSelection();
-  }, { passive: false });
-
-  // --- Reset zoom ---
-  btnFit?.addEventListener("click", () => {
-    state.timelineView.start = ctx.tMinAll;
-    state.timelineView.end = ctx.tMaxAll;
-    renderTimelineForSelection();
-  }, { once: true }); // "once" ici pour éviter multipliage
+  // si on sort de la zone SVG
+  svg.addEventListener("mouseleave", hideTip);
 }
 
 function renderGapCurveForSelection() {
@@ -1531,10 +1450,6 @@ function renderGapCurveForSelection() {
     }
     renderCurrent();
   });
-
-  document.getElementById("btnFitTimeline")?.addEventListener("click", () => {
-  renderTimelineForSelection();
-});
 
   function decodeCsvFileSmart(file) {
   return file.arrayBuffer().then((buffer) => {
