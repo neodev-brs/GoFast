@@ -1143,21 +1143,27 @@ function resetAll() {
   // Timeline
   const hint = document.getElementById("timelineHint");
   if (hint) hint.style.display = "";
-  document.getElementById("timelineLegend")?.textContent = "";
-  document.getElementById("timelineSvg")?.replaceChildren();
+
+  const tlLegend = document.getElementById("timelineLegend");
+  if (tlLegend) tlLegend.textContent = "";
+
+  const tlSvg = document.getElementById("timelineSvg");
+  if (tlSvg) tlSvg.replaceChildren();
 
   // Carte "ordre"
   const bar = document.getElementById("orderProgress");
   if (bar) bar.style.width = "0%";
 
-  document.getElementById("orderValue")?.textContent = "—";
+  const orderValue = document.getElementById("orderValue");
+  if (orderValue) orderValue.textContent = "—";
+
   const badge = document.getElementById("orderBadge");
   if (badge) {
     badge.className = "fr-badge fr-badge--info";
     badge.textContent = "—";
   }
-  document.getElementById("orderHelp")?.textContent =
-    "Sélectionne une ligne de résultat pour afficher l’indicateur.";
+  const orderHelp = document.getElementById("orderHelp");
+  if (orderHelp) orderHelp.textContent = "Sélectionne une ligne de résultat pour afficher l’indicateur.";
 }
 
   function bindResultRowSelection() {
