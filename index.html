@@ -161,10 +161,9 @@
 
 /* Détails sur une seule ligne */
 .col-details{
-  white-space: normal;
-  overflow: visible;
-  text-overflow: unset;
-  word-break: break-word;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 /* Centre tout le contenu du tableau résultats */
@@ -368,6 +367,15 @@
 
               <div class="fr-table fr-table--bordered fr-table--layout-fixed">
                 <table>
+                  <table>
+                    <colgroup>
+                      <col style="width:140px">   <!-- % -->
+                      <col style="width:220px">   <!-- Véhicules -->
+                      <col style="width:70px">    <!-- Sites -->
+                      <col style="width:90px">    <!-- Fenêtre max -->
+                      <col style="width:160px">   <!-- Lieu -->
+                      <col>                       <!-- Détails = prend tout le reste -->
+                    </colgroup>
                   <thead>
                     <tr>
                       <th scope="col">Probabilité (en %)</th>
