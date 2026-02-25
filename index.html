@@ -225,6 +225,30 @@
 
 .gofast-result-row:focus{ outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
 
+.gofast-timeline-wrap{ position: relative; }
+
+.gofast-tooltip{
+  position:absolute;
+  z-index: 5;
+  display:none;
+  pointer-events:none;
+  max-width: 360px;
+  padding: .5rem .75rem;
+  border-radius: .5rem;
+  border: 1px solid var(--border-default-grey);
+  background: var(--background-default-grey);
+  color: var(--text-default-grey);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  font: 12px Marianne, Arial, sans-serif;
+}
+
+.gofast-tl-dot.is-hover{
+  stroke: var(--border-action-high-blue-france);
+  stroke-width: 2;
+}
+
+.gofast-tl-row.is-dim{ opacity: .25; }
+
 </style>
 
 </head>
@@ -469,7 +493,7 @@
           </div>
           <div class="fr-col-auto">
             <button id="btnFitTimeline" class="fr-btn fr-btn--secondary fr-btn--sm" type="button" disabled>
-              Ajuster
+              Réinitialiser le zoom
             </button>
           </div>
         </div>
@@ -480,9 +504,29 @@
 
         <div class="gofast-timeline-wrap">
           <svg id="timelineSvg" class="gofast-timeline" viewBox="0 0 1000 320" preserveAspectRatio="none" aria-label="Timeline des passages"></svg>
+          <div id="timelineTooltip" class="gofast-tooltip" role="status" aria-live="polite"></div>
         </div>
 
         <p class="fr-text--xs fr-hint-text fr-mt-2w" id="timelineLegend"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COURBE DES ÉCARTS -->
+<div class="fr-col-12" id="gaps">
+  <div class="fr-card fr-card--no-arrow">
+    <div class="fr-card__body">
+      <div class="fr-card__content">
+        <h3 class="fr-card__title">Courbe des écarts</h3>
+        <p class="fr-card__desc">Écarts (en secondes) entre véhicules au sein des occurrences.</p>
+
+        <div class="gofast-timeline-wrap">
+          <svg id="gapSvg" class="gofast-timeline" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg>
+          <div id="gapTooltip" class="gofast-tooltip" role="status" aria-live="polite"></div>
+        </div>
+
+        <p class="fr-text--xs fr-hint-text fr-mt-2w" id="gapLegend"></p>
       </div>
     </div>
   </div>
@@ -597,6 +641,7 @@
     results: [],
     hasSeenEnquete: false,
     selectedResultIndex: -1,
+    timelineView: { start: null, end: null },
   };
 
   const els = {
@@ -1021,6 +1066,7 @@ function renderCurrent() {
       // rafraîchit la timeline si une sélection existe
     if (state.selectedResultIndex >= 0 || !!els.toggleModeEnquete?.checked) {
       renderTimelineForSelection();
+      renderGapCurveForSelection();
 }
 }
 
@@ -1048,6 +1094,11 @@ function renderCurrent() {
     state.selectedResultIndex = -1;
     document.getElementById("timelineHint")?.style && (document.getElementById("timelineHint").style.display = "");
     document.getElementById("btnFitTimeline").disabled = true;
+    document.getElementById("timelineLegend").textContent = "";
+    document.getElementById("gapLegend").textContent = "";
+    document.getElementById("timelineSvg")?.replaceChildren();
+    document.getElementById("gapSvg")?.replaceChildren();
+    state.timelineView = { start: null, end: null };
   }
 
   function bindResultRowSelection() {
@@ -1081,26 +1132,25 @@ function selectResult(idx) {
 
   const hint = document.getElementById("timelineHint");
   if (hint) hint.style.display = "none";
+
+  renderGapCurveForSelection();
 }
 
 function renderTimelineForSelection() {
   const svg = document.getElementById("timelineSvg");
   const legend = document.getElementById("timelineLegend");
+  const btnFit = document.getElementById("btnFitTimeline");
   if (!svg) return;
 
-  // Efface
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 
-  // Si vue détaillée : on peut afficher toutes les occurrences brutes
   const isEnquete = !!els.toggleModeEnquete?.checked;
 
   let occurrences = [];
   let plates = [];
 
   if (isEnquete) {
-    // timeline sur toutes les fenêtres brutes
     occurrences = state.rawGroups || [];
-    // plaques du 1er groupe (si existant) pour établir les "lignes"
     plates = Array.from(new Set(occurrences.flatMap(g => g.vehicles.map(v => v.plate))));
   } else {
     const r = state.results[state.selectedResultIndex];
@@ -1111,61 +1161,91 @@ function renderTimelineForSelection() {
 
   if (!occurrences.length || !plates.length) return;
 
-  // bornes temps
-  const tMin = Math.min(...occurrences.map(o => o.tMin));
-  const tMax = Math.max(...occurrences.map(o => o.tMax));
+  // bornes temps globales
+  const tMinAll = Math.min(...occurrences.map(o => o.tMin));
+  const tMaxAll = Math.max(...occurrences.map(o => o.tMax));
+  const spanAll = Math.max(1, tMaxAll - tMinAll);
+
+  // initialise le zoom si pas encore défini
+  if (!state.timelineView.start || !state.timelineView.end) {
+    state.timelineView.start = tMinAll;
+    state.timelineView.end = tMaxAll;
+  }
+
+  // bornes vues (zoom)
+  const tMin = state.timelineView.start;
+  const tMax = state.timelineView.end;
   const span = Math.max(1, tMax - tMin);
 
-  // dimensions “virtuelles” (viewBox 1000x320)
-  const W = 1000;
-  const H = 320;
-  const padL = 160;
-  const padR = 20;
-  const padT = 20;
-  const padB = 30;
+  // dimensions viewBox
+  const W = 1000, H = 320;
+  const padL = 160, padR = 20, padT = 20, padB = 30;
 
-  // lignes par plaque
-  const rows = plates.slice(0, 8); // limite visuelle (sinon c’est illisible). On pourra paginer après.
+  const rows = plates.slice(0, 10); // 10 lignes max pour lisibilité
   const rowCount = rows.length;
   const rowGap = (H - padT - padB) / Math.max(1, rowCount);
   const yFor = (i) => padT + rowGap * i + rowGap * 0.5;
 
-  // axe
+  const xForTs = (ts) => padL + (W - padL - padR) * ((ts - tMin) / span);
+
+  // Axe X
   svg.appendChild(svgLine(padL, H - padB, W - padR, H - padB, "gofast-tl-axis"));
 
-  // graduations simples : 0%, 25%, 50%, 75%, 100%
+  // Graduations simples
   [0, 0.25, 0.5, 0.75, 1].forEach(p => {
     const x = padL + (W - padL - padR) * p;
     svg.appendChild(svgLine(x, H - padB, x, padT, "gofast-tl-line"));
   });
 
-  // labels temps min/max
-  const labelMin = new Date(tMin).toLocaleTimeString();
-  const labelMax = new Date(tMax).toLocaleTimeString();
-  svg.appendChild(svgText(padL, H - 10, labelMin, "gofast-tl-label"));
-  svg.appendChild(svgText(W - padR - 60, H - 10, labelMax, "gofast-tl-label"));
+  // labels temps
+  svg.appendChild(svgText(padL, H - 10, new Date(tMin).toLocaleTimeString(), "gofast-tl-label"));
+  svg.appendChild(svgText(W - padR - 80, H - 10, new Date(tMax).toLocaleTimeString(), "gofast-tl-label"));
 
-  // labels plaques + points
+  // Groupe pour chaque ligne véhicule (utile pour “dim” au survol)
   rows.forEach((plate, i) => {
     const y = yFor(i);
-    svg.appendChild(svgText(10, y + 4, plate, "gofast-tl-label"));
 
-    // pour chaque occurrence, si plaque présente, on place un point au t du véhicule
-    occurrences.forEach(o => {
+    const gRow = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    gRow.setAttribute("class", "gofast-tl-row");
+    gRow.dataset.plate = plate;
+
+    // label plaque
+    gRow.appendChild(svgText(10, y + 4, plate, "gofast-tl-label"));
+
+    // points
+    occurrences.forEach((o, occIdx) => {
       const veh = o.vehicles.find(v => v.plate === plate);
       if (!veh) return;
 
-      const x = padL + (W - padL - padR) * ((veh.ts - tMin) / span);
+      // ne dessine que si dans la fenêtre zoom
+      if (veh.ts < tMin || veh.ts > tMax) return;
+
+      const x = xForTs(veh.ts);
       const dot = svgCircle(x, y, 5, "gofast-tl-dot");
+
       dot.setAttribute("fill", "var(--background-action-low-blue-france)");
-      dot.setAttribute("title", `${plate} • ${o.site} • ${new Date(veh.ts).toLocaleString()}`);
-      svg.appendChild(dot);
+      dot.dataset.plate = plate;
+      dot.dataset.site = o.site;
+      dot.dataset.time = new Date(veh.ts).toLocaleString();
+      dot.dataset.occ = String(occIdx);
+
+      gRow.appendChild(dot);
     });
+
+    svg.appendChild(gRow);
   });
 
+  // Légende
   if (legend) {
-    legend.textContent = `Fenêtre affichée : ${new Date(tMin).toLocaleString()} → ${new Date(tMax).toLocaleString()} • ${occurrences.length} occurrence(s)`;
+    legend.textContent =
+      `Fenêtre affichée : ${new Date(tMin).toLocaleString()} → ${new Date(tMax).toLocaleString()} • ${occurrences.length} occurrence(s)`;
   }
+
+  // bouton reset
+  if (btnFit) btnFit.disabled = false;
+
+  // branche interactions (tooltip + highlight + zoom)
+  bindTimelineInteractions({ tMinAll, tMaxAll, padL, padR, W });
 }
 
 function svgLine(x1,y1,x2,y2, cls){
@@ -1188,6 +1268,207 @@ function svgCircle(cx,cy,r, cls){
   el.setAttribute("r", r);
   el.setAttribute("class", cls);
   return el;
+}
+
+function bindTimelineInteractions(ctx) {
+  const svg = document.getElementById("timelineSvg");
+  const tip = document.getElementById("timelineTooltip");
+  const btnFit = document.getElementById("btnFitTimeline");
+  if (!svg || !tip) return;
+
+  // --- Tooltip sur les points ---
+  const dots = svg.querySelectorAll(".gofast-tl-dot");
+  const rows = svg.querySelectorAll(".gofast-tl-row");
+
+  function showTip(e, dot) {
+    const plate = dot.dataset.plate || "";
+    const site = dot.dataset.site || "";
+    const time = dot.dataset.time || "";
+
+    tip.innerHTML = `<strong>${escapeHtml(plate)}</strong><br>${escapeHtml(site)}<br>${escapeHtml(time)}`;
+    tip.style.display = "block";
+    moveTip(e);
+
+    // surbrillance : une ligne véhicule visible, le reste atténué
+    rows.forEach(r => r.classList.add("is-dim"));
+    const row = svg.querySelector(`.gofast-tl-row[data-plate="${CSS.escape(plate)}"]`);
+    if (row) row.classList.remove("is-dim");
+
+    dot.classList.add("is-hover");
+  }
+
+  function moveTip(e) {
+    const wrap = svg.closest(".gofast-timeline-wrap");
+    const rect = wrap.getBoundingClientRect();
+    const x = e.clientX - rect.left + 12;
+    const y = e.clientY - rect.top + 12;
+
+    tip.style.left = `${x}px`;
+    tip.style.top = `${y}px`;
+  }
+
+  function hideTip() {
+    tip.style.display = "none";
+    rows.forEach(r => r.classList.remove("is-dim"));
+    dots.forEach(d => d.classList.remove("is-hover"));
+  }
+
+  dots.forEach(dot => {
+    dot.addEventListener("mouseenter", (e) => showTip(e, dot));
+    dot.addEventListener("mousemove", moveTip);
+    dot.addEventListener("mouseleave", hideTip);
+  });
+
+  // --- Zoom à la molette (horizontal) ---
+  svg.addEventListener("wheel", (e) => {
+    e.preventDefault();
+
+    // position curseur -> temps
+    const pt = svg.createSVGPoint();
+    pt.x = e.offsetX * (1000 / svg.clientWidth);
+    pt.y = e.offsetY * (320 / svg.clientHeight);
+
+    const x = pt.x;
+    const padL = ctx.padL;
+    const padR = ctx.padR;
+    const W = ctx.W;
+
+    const clampedX = Math.max(padL, Math.min(W - padR, x));
+    const p = (clampedX - padL) / (W - padL - padR);
+
+    const vStart = state.timelineView.start;
+    const vEnd = state.timelineView.end;
+    const vSpan = Math.max(1, vEnd - vStart);
+    const center = vStart + vSpan * p;
+
+    const zoomIn = e.deltaY < 0;
+    const factor = zoomIn ? 0.85 : 1.15;
+
+    let newSpan = vSpan * factor;
+    const minSpan = 10 * 1000; // 10s mini
+    const maxSpan = Math.max(1, ctx.tMaxAll - ctx.tMinAll);
+
+    newSpan = Math.max(minSpan, Math.min(maxSpan, newSpan));
+
+    let newStart = center - newSpan * p;
+    let newEnd = newStart + newSpan;
+
+    // clamp sur bornes globales
+    if (newStart < ctx.tMinAll) {
+      newStart = ctx.tMinAll;
+      newEnd = newStart + newSpan;
+    }
+    if (newEnd > ctx.tMaxAll) {
+      newEnd = ctx.tMaxAll;
+      newStart = newEnd - newSpan;
+    }
+
+    state.timelineView.start = newStart;
+    state.timelineView.end = newEnd;
+
+    renderTimelineForSelection();
+  }, { passive: false });
+
+  // --- Reset zoom ---
+  btnFit?.addEventListener("click", () => {
+    state.timelineView.start = ctx.tMinAll;
+    state.timelineView.end = ctx.tMaxAll;
+    renderTimelineForSelection();
+  }, { once: true }); // "once" ici pour éviter multipliage
+}
+
+function renderGapCurveForSelection() {
+  const svg = document.getElementById("gapSvg");
+  const tip = document.getElementById("gapTooltip");
+  const legend = document.getElementById("gapLegend");
+  if (!svg) return;
+
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  if (tip) tip.style.display = "none";
+
+  const isEnquete = !!els.toggleModeEnquete?.checked;
+
+  let occurrences = [];
+  if (isEnquete) {
+    occurrences = state.rawGroups || [];
+  } else {
+    const r = state.results[state.selectedResultIndex];
+    if (!r) return;
+    occurrences = r.occurrences || [];
+  }
+
+  if (!occurrences.length) return;
+
+  // Pour chaque occurrence : on trie les véhicules par ts, puis on calcule l'écart moyen (sec) entre voisins
+  const points = occurrences.map((o, i) => {
+    const v = [...o.vehicles].sort((a,b)=>a.ts-b.ts);
+    if (v.length < 2) return null;
+
+    const gaps = [];
+    for (let k = 1; k < v.length; k++) gaps.push((v[k].ts - v[k-1].ts) / 1000);
+
+    const avg = gaps.reduce((s,x)=>s+x,0) / gaps.length;
+    return { i, avg, site: o.site, tMin: o.tMin, tMax: o.tMax };
+  }).filter(Boolean);
+
+  if (!points.length) return;
+
+  const W=1000, H=260, padL=60, padR=20, padT=20, padB=30;
+
+  const yMax = Math.max(...points.map(p=>p.avg), 1);
+  const yMin = 0;
+
+  const xFor = (i) => padL + (W - padL - padR) * (i / Math.max(1, points.length - 1));
+  const yFor = (v) => (H - padB) - (H - padT - padB) * ((v - yMin) / (yMax - yMin || 1));
+
+  // axes
+  svg.appendChild(svgLine(padL, padT, padL, H-padB, "gofast-tl-axis"));
+  svg.appendChild(svgLine(padL, H-padB, W-padR, H-padB, "gofast-tl-axis"));
+
+  // polyline
+  const poly = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  poly.setAttribute("fill", "none");
+  poly.setAttribute("stroke", "var(--border-action-high-blue-france)");
+  poly.setAttribute("stroke-width", "2");
+  poly.setAttribute("points", points.map(p => `${xFor(p.i)},${yFor(p.avg)}`).join(" "));
+  svg.appendChild(poly);
+
+  // points + tooltip
+  points.forEach(p => {
+    const cx = xFor(p.i);
+    const cy = yFor(p.avg);
+    const c = svgCircle(cx, cy, 5, "gofast-tl-dot");
+    c.setAttribute("fill", "var(--background-action-low-blue-france)");
+    c.dataset.txt = `Écart moyen: ${Math.round(p.avg)}s • ${p.site} • ${new Date(p.tMin).toLocaleTimeString()}→${new Date(p.tMax).toLocaleTimeString()}`;
+    svg.appendChild(c);
+
+    c.addEventListener("mouseenter", (e) => {
+      if (!tip) return;
+      tip.textContent = c.dataset.txt;
+      tip.style.display = "block";
+      const wrap = svg.closest(".gofast-timeline-wrap");
+      const rect = wrap.getBoundingClientRect();
+      tip.style.left = `${e.clientX - rect.left + 12}px`;
+      tip.style.top  = `${e.clientY - rect.top + 12}px`;
+      c.classList.add("is-hover");
+    });
+    c.addEventListener("mousemove", (e) => {
+      if (!tip) return;
+      const wrap = svg.closest(".gofast-timeline-wrap");
+      const rect = wrap.getBoundingClientRect();
+      tip.style.left = `${e.clientX - rect.left + 12}px`;
+      tip.style.top  = `${e.clientY - rect.top + 12}px`;
+    });
+    c.addEventListener("mouseleave", () => {
+      if (!tip) return;
+      tip.style.display = "none";
+      c.classList.remove("is-hover");
+    });
+  });
+
+  if (legend) {
+    legend.textContent = `Nombre de points: ${points.length} • Écart max observé: ${Math.round(yMax)}s`;
+  }
 }
 
   // ============================================================
