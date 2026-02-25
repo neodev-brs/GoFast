@@ -530,6 +530,42 @@
     }[c]));
   }
 
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+function roundUpTo5(n) {
+  if (!Number.isFinite(n)) return 0;
+  n = clamp(n, 0, 100);
+  return Math.min(100, Math.ceil(n / 5) * 5);
+}
+
+function scoreMeta(percentRaw) {
+  const percent = roundUpTo5(percentRaw);
+
+  let color, level;
+  if (percent <= 30) {
+    color = "success";
+    level = "Corrélation faible";
+  } else if (percent <= 70) {
+    color = "warning";
+    level = "Corrélation modérée";
+  } else {
+    color = "error";
+    level = "Corrélation forte";
+  }
+
+  return { percent, color, level };
+}
+
+function renderScoreBadgeHtml(percentRaw) {
+  const { percent, color, level } = scoreMeta(percentRaw);
+  return `
+    <span class="gofast-score-wrap">
+      <span class="fr-badge fr-badge--${color} gofast-bubble" title="${escapeHtml(level)}">${percent}%</span>
+      <span class="gofast-score-level">${escapeHtml(level)}</span>
+    </span>
+  `;
+}
+
   function normalizeRow(raw, sourceName) {
   const keys = Object.keys(raw);
 
@@ -749,35 +785,44 @@ function parseCsv(text) {
   }
 
   function renderResults(results, cfg) {
-    if (!results.length) {
-      els.resultsBody.innerHTML = `
-        <tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucun convoi détecté avec ces paramètres.</td></tr>
-      `;
-      return;
-    }
-
-    els.resultsBody.innerHTML = results.map((r, idx) => {
-      const maxWindowMs = Math.max(...r.occurrences.map(o => o.tMax - o.tMin));
-      const maxWindowSec = Math.round(maxWindowMs / 1000);
-
-      const details = r.occurrences
-        .slice(0, 3)
-        .map(o => `${escapeHtml(o.site)} (${new Date(o.tMin).toLocaleString()} → ${new Date(o.tMax).toLocaleTimeString()})`)
-        .join("<br>");
-
-      const more = r.occurrences.length > 3 ? `<br><span class="fr-text--xs fr-hint-text">+ ${r.occurrences.length - 3} autres</span>` : "";
-
-      return `
-        <tr>
-          <td><strong>${r.score}</strong></td>
-          <td>${escapeHtml(r.plates.join(", "))}</td>
-          <td>${r.sitesCount}</td>
-          <td>${maxWindowSec}s</td>
-          <td class="fr-text--sm">${details}${more}</td>
-        </tr>
-      `;
-    }).join("");
+  if (!results.length) {
+    els.resultsBody.innerHTML = `
+      <tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucun convoi détecté avec ces paramètres.</td></tr>
+    `;
+    return;
   }
+
+  // Normalisation : le meilleur score brut de la session = 100%
+  const maxRaw = Math.max(...results.map(r => Number(r.score) || 0), 1);
+
+  els.resultsBody.innerHTML = results.map((r, idx) => {
+    const maxWindowMs = Math.max(...r.occurrences.map(o => o.tMax - o.tMin));
+    const maxWindowSec = Math.round(maxWindowMs / 1000);
+
+    const details = r.occurrences
+      .slice(0, 3)
+      .map(o => `${escapeHtml(o.site)} (${new Date(o.tMin).toLocaleString()} → ${new Date(o.tMax).toLocaleTimeString()})`)
+      .join("<br>");
+
+    const more = r.occurrences.length > 3
+      ? `<br><span class="fr-text--xs fr-hint-text">+ ${r.occurrences.length - 3} autres</span>`
+      : "";
+
+    // % fiable : cap 100, arrondi au 5 sup, basé sur score brut normalisé
+    const percentRaw = (r.score / maxRaw) * 100;
+    const scoreCell = renderScoreBadgeHtml(percentRaw);
+
+    return `
+      <tr>
+        <td>${scoreCell}</td>
+        <td>${escapeHtml(r.plates.join(", "))}</td>
+        <td>${r.sitesCount}</td>
+        <td>${maxWindowSec}s</td>
+        <td class="fr-text--sm">${details}${more}</td>
+      </tr>
+    `;
+  }).join("");
+}
 
   function renderResultsEnquete(rawGroups) {
   if (!rawGroups.length) {
