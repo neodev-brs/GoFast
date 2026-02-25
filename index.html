@@ -916,26 +916,30 @@ const scoreCell = renderScoreBadgeHtml(r.scorePctRaw);
   function renderResultsEnquete(rawGroups) {
   if (!rawGroups.length) {
     els.resultsBody.innerHTML = `
-      <tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucune occurrence détectée.</td></tr>
+      <tr><td colspan="6" class="fr-text--sm fr-hint-text">Aucune occurrence détectée.</td></tr>
     `;
     return;
   }
 
-  // 1 ligne = 1 fenêtre brute (site + fenêtre + plaques)
   els.resultsBody.innerHTML = rawGroups.map((g) => {
     const windowSec = Math.round((g.tMax - g.tMin) / 1000);
     const plates = g.vehicles.map(v => v.plate).join(", ");
-    const details =
-      `${escapeHtml(g.site)}<br>` +
+
+    // Colonne Lieu : uniquement le site
+    const lieu = g.site;
+
+    // Colonne Détails : horodatage sur une ligne
+    const detailsText =
       `${new Date(g.tMin).toLocaleString()} → ${new Date(g.tMax).toLocaleTimeString()}`;
 
     return `
       <tr>
         <td>—</td>
         <td>${escapeHtml(plates)}</td>
-        <td>1</td>
-        <td>${windowSec}s</td>
-        <td class="fr-text--sm">${details}</td>
+        <td class="col-small">1</td>
+        <td class="col-small">${windowSec}s</td>
+        <td class="col-lieu">${escapeHtml(lieu)}</td>
+        <td class="col-details" title="${escapeHtml(detailsText)}">${escapeHtml(detailsText)}</td>
       </tr>
     `;
   }).join("");
