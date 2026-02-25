@@ -1091,7 +1091,6 @@ function renderCurrent() {
     els.resultsBody.innerHTML = `<tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td></tr>`;
     state.selectedResultIndex = -1;
     document.getElementById("timelineHint")?.style && (document.getElementById("timelineHint").style.display = "");
-    document.getElementById("btnFitTimeline").disabled = true;
     document.getElementById("timelineLegend").textContent = "";
     document.getElementById("gapLegend").textContent = "";
     document.getElementById("timelineSvg")?.replaceChildren();
@@ -1110,8 +1109,6 @@ function renderCurrent() {
       }
     });
   });
-  // activer bouton "Ajuster" seulement si un groupe est sélectionné
-  document.getElementById("btnFitTimeline").disabled = (state.selectedResultIndex < 0);
 }
 
 function selectResult(idx) {
@@ -1125,7 +1122,6 @@ function selectResult(idx) {
   if (active) active.style.outline = "2px solid var(--border-action-high-blue-france)";
 
   renderTimelineForSelection();
-  document.getElementById("btnFitTimeline").disabled = false;
 
   const hint = document.getElementById("timelineHint");
   if (hint) hint.style.display = "none";
@@ -1138,7 +1134,7 @@ function renderTimelineForSelection() {
   const legend = document.getElementById("timelineLegend");
   if (!svg) return;
 
-  while (svg.firstChild) svg.removeChild(svg.firstChild);
+  svg.replaceChildren();
 
   const isEnquete = !!els.toggleModeEnquete?.checked;
 
@@ -1155,9 +1151,11 @@ function renderTimelineForSelection() {
     plates = r.plates || [];
   }
 
-  if (!occurrences.length || !plates.length) return;
+  if (!occurrences.length || !plates.length) {
+    if (legend) legend.textContent = "";
+    return;
+  }
 
-  // bornes temps
   const tMin = Math.min(...occurrences.map(o => o.tMin));
   const tMax = Math.max(...occurrences.map(o => o.tMax));
   const span = Math.max(1, tMax - tMin);
@@ -1166,13 +1164,10 @@ function renderTimelineForSelection() {
   const padL = 160, padR = 20, padT = 20, padB = 30;
 
   const rows = plates.slice(0, 10);
-  const rowCount = rows.length;
-  const rowGap = (H - padT - padB) / Math.max(1, rowCount);
+  const rowGap = (H - padT - padB) / Math.max(1, rows.length);
   const yFor = (i) => padT + rowGap * i + rowGap * 0.5;
-
   const xForTs = (ts) => padL + (W - padL - padR) * ((ts - tMin) / span);
 
-  // Axe
   svg.appendChild(svgLine(padL, H - padB, W - padR, H - padB, "gofast-tl-axis"));
   [0, 0.25, 0.5, 0.75, 1].forEach(p => {
     const x = padL + (W - padL - padR) * p;
@@ -1182,7 +1177,6 @@ function renderTimelineForSelection() {
   svg.appendChild(svgText(padL, H - 10, new Date(tMin).toLocaleTimeString(), "gofast-tl-label"));
   svg.appendChild(svgText(W - padR - 80, H - 10, new Date(tMax).toLocaleTimeString(), "gofast-tl-label"));
 
-  // Lignes véhicules
   rows.forEach((plate, i) => {
     const y = yFor(i);
 
@@ -1216,21 +1210,8 @@ function renderTimelineForSelection() {
       `Fenêtre affichée : ${new Date(tMin).toLocaleString()} → ${new Date(tMax).toLocaleString()} • ${occurrences.length} occurrence(s)`;
   }
 
-  // interactions (tooltip + surbrillance)
   bindTimelineHoverOnly();
 }
-
-  // Légende
-  if (legend) {
-    legend.textContent =
-      `Fenêtre affichée : ${new Date(tMin).toLocaleString()} → ${new Date(tMax).toLocaleString()} • ${occurrences.length} occurrence(s)`;
-  }
-
-  // bouton reset
-  if (btnFit) btnFit.disabled = false;
-
-  // branche interactions (tooltip + highlight + zoom)
-  bindTimelineInteractions({ tMinAll, tMaxAll, padL, padR, W });
 
 function svgLine(x1,y1,x2,y2, cls){
   const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
