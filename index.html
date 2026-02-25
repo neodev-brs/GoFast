@@ -185,6 +185,46 @@
   white-space: nowrap;
 }
 
+.gofast-timeline-wrap{
+  width: 100%;
+  border: 1px solid var(--border-default-grey);
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--background-default-grey);
+  overflow: hidden;
+}
+
+.gofast-timeline{
+  width: 100%;
+  height: 320px;
+  display: block;
+  background: var(--background-default-grey);
+}
+
+.gofast-tl-label{
+  font: 12px Marianne, Arial, sans-serif;
+  fill: var(--text-default-grey);
+}
+
+.gofast-tl-axis{
+  stroke: var(--border-default-grey);
+  stroke-width: 1;
+}
+
+.gofast-tl-dot{
+  stroke: var(--border-default-grey);
+  stroke-width: 1;
+}
+
+.gofast-tl-line{
+  stroke: var(--border-default-grey);
+  stroke-width: 1;
+}
+
+.gofast-result-row{ cursor: pointer; }
+
+.gofast-result-row:focus{ outline: 2px solid var(--border-action-high-blue-france); outline-offset: -2px; }
+
 </style>
 
 </head>
@@ -379,7 +419,6 @@
 
               <div class="fr-table fr-table--bordered fr-table--layout-fixed">
                 <table>
-                  <table>
                     <colgroup>
                       <col style="width:140px">   <!-- % -->
                       <col style="width:220px">   <!-- Véhicules -->
@@ -415,6 +454,40 @@
       </div>
 
     </div>
+
+    <!-- TIMELINE -->
+<div class="fr-col-12" id="timeline">
+  <div class="fr-card fr-card--no-arrow">
+    <div class="fr-card__body">
+      <div class="fr-card__content">
+        <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
+          <div class="fr-col">
+            <h3 class="fr-card__title">Timeline</h3>
+            <p class="fr-card__desc">
+              Visualisation temporelle des passages (sélectionne un groupe dans le tableau).
+            </p>
+          </div>
+          <div class="fr-col-auto">
+            <button id="btnFitTimeline" class="fr-btn fr-btn--secondary fr-btn--sm" type="button" disabled>
+              Ajuster
+            </button>
+          </div>
+        </div>
+
+        <div class="fr-alert fr-alert--info fr-mb-2w" id="timelineHint">
+          <p>Sélectionne une ligne de résultat pour afficher la timeline.</p>
+        </div>
+
+        <div class="gofast-timeline-wrap">
+          <svg id="timelineSvg" class="gofast-timeline" viewBox="0 0 1000 320" preserveAspectRatio="none" aria-label="Timeline des passages"></svg>
+        </div>
+
+        <p class="fr-text--xs fr-hint-text fr-mt-2w" id="timelineLegend"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
   </main>
 
 <dialog id="fr-theme-modal" class="fr-modal" aria-labelledby="fr-theme-modal-title">
@@ -522,7 +595,8 @@
     groups: [],      // groupes de convoi détectés
     rawGroups: [],
     results: [],
-    hasSeenEnquete: false
+    hasSeenEnquete: false,
+    selectedResultIndex: -1,
   };
 
   const els = {
@@ -796,81 +870,56 @@ function parseCsv(text) {
   // MODULE SCORING (v1 simple)
   // ============================================================
   function scoreAndMerge(groups, cfg) {
-    // v1: fusion grossière par "set de plaques" sur différents sites
-    const minSites = cfg.minSites;
-    const strictOrder = cfg.strictOrder;
+  const minSites = cfg.minSites;
+  const strictOrder = cfg.strictOrder;
 
-    const keyFor = (g) => g.vehicles.map(v => v.plate).sort().join("|");
-    const merged = new Map();
+  const keyFor = (g) => g.vehicles.map(v => v.plate).sort().join("|");
+  const merged = new Map();
 
-    for (const g of groups) {
-      const key = keyFor(g);
-      if (!merged.has(key)) {
-        merged.set(key, {
-          key,
-          plates: g.vehicles.map(v => v.plate).sort(),
-          sites: new Set(),
-          occurrences: [],
-        });
-      }
-      const m = merged.get(key);
-      m.sites.add(g.site);
-      m.occurrences.push(g);
+  for (const g of groups) {
+    const key = keyFor(g);
+    if (!merged.has(key)) {
+      merged.set(key, {
+        plates: g.vehicles.map(v => v.plate).sort(),
+        sites: new Set(),
+        occurrences: []
+      });
     }
-
-    const out = [];
-    for (const m of merged.values()) {
-      const sitesCount = m.sites.size;
-      if (sitesCount < minSites) continue;
-
-      // score v1 : occurrences * sites * bonus si ordre stable
-      let score = m.occurrences.length * sitesCount;
-
-      if (strictOrder) {
-        // bonus si la première plaque (chronologique) revient souvent la même sur les occurrences
-        const firsts = m.occurrences.map(o => o.vehicles[0]?.plate).filter(Boolean);
-        const mode = firsts.sort((a,b)=>
-          firsts.filter(x=>x===b).length - firsts.filter(x=>x===a).length
-        )[0];
-        const stability = firsts.filter(x => x === mode).length / Math.max(1, firsts.length);
-        score += Math.round(stability * 5);
-      }
-
-      // --- score brut existant ---
-let rawScore = m.occurrences.length * sitesCount;
-
-let stabilityBonus = 0;
-if (strictOrder) {
-  const firsts = m.occurrences.map(o => o.vehicles[0]?.plate).filter(Boolean);
-  const mode = firsts.sort((a,b)=>
-    firsts.filter(x=>x===b).length - firsts.filter(x=>x===a).length
-  )[0];
-  const stability = firsts.filter(x => x === mode).length / Math.max(1, firsts.length);
-  stabilityBonus = stability * 5;              // bonus max ~5
-  rawScore += Math.round(stabilityBonus);
-}
-
-// --- conversion en % absolu (0..100) ---
-// k = “niveau de difficulté” pour atteindre 100.
-// Plus k est grand, plus il faut d’éléments (sites/occurrences) pour monter.
-const k = 12; // <- bon point de départ à ajuster
-const scorePctRaw = toPercentSaturating(rawScore, k);
-
-out.push({
-  scorePctRaw,     // % non arrondi (float)
-  rawScore,        // garde en interne si tu veux debug (pas affiché)
-  plates: m.plates,
-  sitesCount,
-  occurrences: m.occurrences
-});
-
-out.sort((a,b) => b.scorePctRaw - a.scorePctRaw);
-
-    }
-
-    out.sort((a,b) => b.score - a.score);
-    return out;
+    const m = merged.get(key);
+    m.sites.add(g.site);
+    m.occurrences.push(g);
   }
+
+  const out = [];
+  for (const m of merged.values()) {
+    const sitesCount = m.sites.size;
+    if (sitesCount < minSites) continue;
+
+    let rawScore = m.occurrences.length * sitesCount;
+
+    if (strictOrder) {
+      const firsts = m.occurrences.map(o => o.vehicles[0]?.plate).filter(Boolean);
+      const mode = firsts.sort((a,b)=>
+        firsts.filter(x=>x===b).length - firsts.filter(x=>x===a).length
+      )[0];
+      const stability = firsts.filter(x => x === mode).length / Math.max(1, firsts.length);
+      rawScore += Math.round(stability * 5);
+    }
+
+    const scorePctRaw = toPercentSaturating(rawScore, 12);
+
+    out.push({
+      scorePctRaw,
+      rawScore,
+      plates: m.plates,
+      sitesCount,
+      occurrences: m.occurrences
+    });
+  }
+
+  out.sort((a,b) => b.scorePctRaw - a.scorePctRaw);
+  return out;
+}
 
   // ============================================================
   // MODULE UI
@@ -888,48 +937,46 @@ out.sort((a,b) => b.scorePctRaw - a.scorePctRaw);
   function renderResults(results, cfg) {
   if (!results.length) {
     els.resultsBody.innerHTML = `
-      <tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucun convoi détecté avec ces paramètres.</td></tr>
+      <tr><td colspan="6" class="fr-text--sm fr-hint-text">Aucun convoi détecté avec ces paramètres.</td></tr>
     `;
     return;
   }
-
-  // Normalisation : le meilleur score brut de la session = 100%
-  const maxRaw = Math.max(...results.map(r => Number(r.score) || 0), 1);
 
   els.resultsBody.innerHTML = results.map((r, idx) => {
     const maxWindowMs = Math.max(...r.occurrences.map(o => o.tMax - o.tMin));
     const maxWindowSec = Math.round(maxWindowMs / 1000);
 
-    const details = r.occurrences
+    // Détails sur UNE ligne (avec tooltip)
+    const detailsText = r.occurrences
       .slice(0, 3)
-      .map(o => `${escapeHtml(o.site)} (${new Date(o.tMin).toLocaleString()} → ${new Date(o.tMax).toLocaleTimeString()})`)
-      .join("<br>");
+      .map(o => `${o.site} (${new Date(o.tMin).toLocaleString()} → ${new Date(o.tMax).toLocaleTimeString()})`)
+      .join(" • ");
 
-    const more = r.occurrences.length > 3
-      ? `<br><span class="fr-text--xs fr-hint-text">+ ${r.occurrences.length - 3} autres</span>`
-      : "";
+    const moreText = r.occurrences.length > 3 ? ` • +${r.occurrences.length - 3} autres` : "";
+    const detailsFull = detailsText + moreText;
 
-    // % fiable : cap 100, arrondi au 5 sup, basé sur score brut normalisé
-const scoreCell = renderScoreBadgeHtml(r.scorePctRaw);
+    const scoreCell = renderScoreBadgeHtml(r.scorePctRaw);
 
     return `
-  <tr>
-    <td>${scoreCell}</td>
-    <td>${escapeHtml(r.plates.join(", "))}</td>
-    <td class="col-small">${r.sitesCount}</td>
-    <td class="col-small">${maxWindowSec}s</td>
-    <td class="col-lieu">${escapeHtml(r.occurrences[0]?.site || "")}</td>
-    <td class="col-details">${details}${more}</td>
-  </tr>
-`;
+      <tr data-idx="${idx}" class="gofast-result-row" role="button" tabindex="0" title="Afficher la timeline">
+        <td>${scoreCell}</td>
+        <td>${escapeHtml(r.plates.join(", "))}</td>
+        <td class="col-small">${r.sitesCount}</td>
+        <td class="col-small">${maxWindowSec}s</td>
+        <td class="col-lieu">${escapeHtml(r.occurrences[0]?.site || "")}</td>
+        <td class="col-details" title="${escapeHtml(detailsFull)}">${escapeHtml(detailsFull)}</td>
+      </tr>
+    `;
   }).join("");
+
+  bindResultRowSelection();
 }
 
   function renderResultsEnquete(rawGroups) {
   if (!rawGroups.length) {
     els.resultsBody.innerHTML = `
-      <tr><td colspan="6" class="fr-text--sm fr-hint-text">Aucune occurrence détectée.</td></tr>
-    `;
+  <tr><td colspan="6" class="fr-text--sm fr-hint-text">Aucun convoi détecté avec ces paramètres.</td></tr>
+`;
     return;
   }
 
@@ -971,6 +1018,10 @@ function renderCurrent() {
     }
     renderResults(state.results, getConfig());
   }
+      // rafraîchit la timeline si une sélection existe
+    if (state.selectedResultIndex >= 0 || !!els.toggleModeEnquete?.checked) {
+      renderTimelineForSelection();
+}
 }
 
   function getConfig() {
@@ -994,8 +1045,150 @@ function renderCurrent() {
     els.statsText.textContent = "";
     setStatus("info", "En attente d’import");
     els.resultsBody.innerHTML = `<tr><td colspan="5" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td></tr>`;
+    state.selectedResultIndex = -1;
+    document.getElementById("timelineHint")?.style && (document.getElementById("timelineHint").style.display = "");
+    document.getElementById("btnFitTimeline").disabled = true;
   }
 
+  function bindResultRowSelection() {
+  const rows = els.resultsBody.querySelectorAll("tr[data-idx]");
+  rows.forEach(tr => {
+    const idx = Number(tr.dataset.idx);
+    tr.addEventListener("click", () => selectResult(idx));
+    tr.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        selectResult(idx);
+      }
+    });
+  });
+  // activer bouton "Ajuster" seulement si un groupe est sélectionné
+  document.getElementById("btnFitTimeline").disabled = (state.selectedResultIndex < 0);
+}
+
+function selectResult(idx) {
+  state.selectedResultIndex = idx;
+
+  // feedback visuel simple : surligner la ligne
+  els.resultsBody.querySelectorAll("tr[data-idx]").forEach(tr => {
+    tr.style.outline = "";
+  });
+  const active = els.resultsBody.querySelector(`tr[data-idx="${idx}"]`);
+  if (active) active.style.outline = "2px solid var(--border-action-high-blue-france)";
+
+  renderTimelineForSelection();
+  document.getElementById("btnFitTimeline").disabled = false;
+
+  const hint = document.getElementById("timelineHint");
+  if (hint) hint.style.display = "none";
+}
+
+function renderTimelineForSelection() {
+  const svg = document.getElementById("timelineSvg");
+  const legend = document.getElementById("timelineLegend");
+  if (!svg) return;
+
+  // Efface
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  // Si vue détaillée : on peut afficher toutes les occurrences brutes
+  const isEnquete = !!els.toggleModeEnquete?.checked;
+
+  let occurrences = [];
+  let plates = [];
+
+  if (isEnquete) {
+    // timeline sur toutes les fenêtres brutes
+    occurrences = state.rawGroups || [];
+    // plaques du 1er groupe (si existant) pour établir les "lignes"
+    plates = Array.from(new Set(occurrences.flatMap(g => g.vehicles.map(v => v.plate))));
+  } else {
+    const r = state.results[state.selectedResultIndex];
+    if (!r) return;
+    occurrences = r.occurrences || [];
+    plates = r.plates || [];
+  }
+
+  if (!occurrences.length || !plates.length) return;
+
+  // bornes temps
+  const tMin = Math.min(...occurrences.map(o => o.tMin));
+  const tMax = Math.max(...occurrences.map(o => o.tMax));
+  const span = Math.max(1, tMax - tMin);
+
+  // dimensions “virtuelles” (viewBox 1000x320)
+  const W = 1000;
+  const H = 320;
+  const padL = 160;
+  const padR = 20;
+  const padT = 20;
+  const padB = 30;
+
+  // lignes par plaque
+  const rows = plates.slice(0, 8); // limite visuelle (sinon c’est illisible). On pourra paginer après.
+  const rowCount = rows.length;
+  const rowGap = (H - padT - padB) / Math.max(1, rowCount);
+  const yFor = (i) => padT + rowGap * i + rowGap * 0.5;
+
+  // axe
+  svg.appendChild(svgLine(padL, H - padB, W - padR, H - padB, "gofast-tl-axis"));
+
+  // graduations simples : 0%, 25%, 50%, 75%, 100%
+  [0, 0.25, 0.5, 0.75, 1].forEach(p => {
+    const x = padL + (W - padL - padR) * p;
+    svg.appendChild(svgLine(x, H - padB, x, padT, "gofast-tl-line"));
+  });
+
+  // labels temps min/max
+  const labelMin = new Date(tMin).toLocaleTimeString();
+  const labelMax = new Date(tMax).toLocaleTimeString();
+  svg.appendChild(svgText(padL, H - 10, labelMin, "gofast-tl-label"));
+  svg.appendChild(svgText(W - padR - 60, H - 10, labelMax, "gofast-tl-label"));
+
+  // labels plaques + points
+  rows.forEach((plate, i) => {
+    const y = yFor(i);
+    svg.appendChild(svgText(10, y + 4, plate, "gofast-tl-label"));
+
+    // pour chaque occurrence, si plaque présente, on place un point au t du véhicule
+    occurrences.forEach(o => {
+      const veh = o.vehicles.find(v => v.plate === plate);
+      if (!veh) return;
+
+      const x = padL + (W - padL - padR) * ((veh.ts - tMin) / span);
+      const dot = svgCircle(x, y, 5, "gofast-tl-dot");
+      dot.setAttribute("fill", "var(--background-action-low-blue-france)");
+      dot.setAttribute("title", `${plate} • ${o.site} • ${new Date(veh.ts).toLocaleString()}`);
+      svg.appendChild(dot);
+    });
+  });
+
+  if (legend) {
+    legend.textContent = `Fenêtre affichée : ${new Date(tMin).toLocaleString()} → ${new Date(tMax).toLocaleString()} • ${occurrences.length} occurrence(s)`;
+  }
+}
+
+function svgLine(x1,y1,x2,y2, cls){
+  const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  el.setAttribute("x1", x1); el.setAttribute("y1", y1);
+  el.setAttribute("x2", x2); el.setAttribute("y2", y2);
+  el.setAttribute("class", cls);
+  return el;
+}
+function svgText(x,y, txt, cls){
+  const el = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  el.setAttribute("x", x); el.setAttribute("y", y);
+  el.setAttribute("class", cls);
+  el.textContent = txt;
+  return el;
+}
+function svgCircle(cx,cy,r, cls){
+  const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  el.setAttribute("cx", cx); el.setAttribute("cy", cy);
+  el.setAttribute("r", r);
+  el.setAttribute("class", cls);
+  return el;
+}
 
   // ============================================================
   // ÉVÈNEMENTS
@@ -1057,6 +1250,10 @@ function renderCurrent() {
     }
     renderCurrent();
   });
+
+  document.getElementById("btnFitTimeline")?.addEventListener("click", () => {
+  renderTimelineForSelection();
+});
 
   function decodeCsvFileSmart(file) {
   return file.arrayBuffer().then((buffer) => {
