@@ -1235,6 +1235,25 @@ function svgCircle(cx,cy,r, cls){
   return el;
 }
 
+function positionTooltipInWrap(e, wrapEl, tipEl, offset = 12, margin = 8) {
+  const rect = wrapEl.getBoundingClientRect();
+
+  // coords relatives au wrap
+  let x = (e.clientX - rect.left) + offset;
+  let y = (e.clientY - rect.top) + offset;
+
+  // on mesure le tooltip (il doit être display:block pour avoir sa taille)
+  const tw = tipEl.offsetWidth || 0;
+  const th = tipEl.offsetHeight || 0;
+
+  // clamp dans le wrap
+  x = Math.max(margin, Math.min(x, rect.width - tw - margin));
+  y = Math.max(margin, Math.min(y, rect.height - th - margin));
+
+  tipEl.style.left = `${x}px`;
+  tipEl.style.top  = `${y}px`;
+}
+
 function bindTimelineHoverOnly() {
   const svg = document.getElementById("timelineSvg");
   const tip = document.getElementById("timelineTooltip");
@@ -1244,11 +1263,10 @@ function bindTimelineHoverOnly() {
   const rows = svg.querySelectorAll(".gofast-tl-row");
 
   function moveTip(e) {
-    const wrap = svg.closest(".gofast-timeline-wrap");
-    const rect = wrap.getBoundingClientRect();
-    tip.style.left = `${e.clientX - rect.left + 12}px`;
-    tip.style.top  = `${e.clientY - rect.top + 12}px`;
-  }
+  const wrap = svg.closest(".gofast-timeline-wrap");
+  if (!wrap) return;
+  positionTooltipInWrap(e, wrap, tip);
+}
 
   function hideTip() {
     tip.style.display = "none";
@@ -1350,18 +1368,17 @@ function renderGapCurveForSelection() {
       if (!tip) return;
       tip.textContent = c.dataset.txt;
       tip.style.display = "block";
+
       const wrap = svg.closest(".gofast-timeline-wrap");
-      const rect = wrap.getBoundingClientRect();
-      tip.style.left = `${e.clientX - rect.left + 12}px`;
-      tip.style.top  = `${e.clientY - rect.top + 12}px`;
+      if (wrap) positionTooltipInWrap(e, wrap, tip);
+
       c.classList.add("is-hover");
     });
+
     c.addEventListener("mousemove", (e) => {
       if (!tip) return;
       const wrap = svg.closest(".gofast-timeline-wrap");
-      const rect = wrap.getBoundingClientRect();
-      tip.style.left = `${e.clientX - rect.left + 12}px`;
-      tip.style.top  = `${e.clientY - rect.top + 12}px`;
+      if (wrap) positionTooltipInWrap(e, wrap, tip);
     });
     c.addEventListener("mouseleave", () => {
       if (!tip) return;
