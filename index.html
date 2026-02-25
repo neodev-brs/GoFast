@@ -126,27 +126,10 @@
   box-shadow: none !important;
 }
 
-/* === GoFast Score Bubble + libellé === */
-.gofast-score-wrap{
-  display:inline-flex;
-  align-items:center;
-  gap:.5rem;
-}
-
-.gofast-bubble{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  min-width:3.2rem;
-  height:2rem;
-  border-radius:999px;
-  padding:0 .6rem;
-  font-weight:700;
-  white-space:nowrap;
-}
-
-.gofast-score-level{
-  font-size:.875rem;
+/* Enlève l'icône DSFR devant le texte dans NOS badges score */
+.gofast-bubble::before{
+  display: none !important;
+  content: none !important;
 }
 
 </style>
