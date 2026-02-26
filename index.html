@@ -804,8 +804,15 @@
 
 function fixText(s){
   return String(s || "")
-    .replace(/\u201A/g, "é")   // ‚ → é (CP850 mal décodé)
-    .replace(/P‚age/gi, "Péage");
+    // cas CP850 lu en Windows-1252 : é => ‚
+    .replace(/\u201A/g, "é")
+
+    // cas mauvais décodage : é => � (replacement char) -> on corrige ciblé "P�age"
+    .replace(/P\uFFFDage/gi, "Péage")
+
+    // garde-fous classiques
+    .replace(/P[‚�\?]age/gi, "Péage")
+    .replace(/Peage/gi, "Péage");
 }
 
 function roundUpTo5(n) {
@@ -878,10 +885,7 @@ function renderScoreBadgeHtml(percentRaw) {
   "localisation","adresse"
 ));
 
-// Correction CP850 → UTF-8 (cas fréquent exports péage / LAPI)
-site = site
-  .replace(/\u201A/g, "é")   // ‚ → é
-  .replace(/P‚age/gi, "Péage");
+site = fixText(site);
 
   const ts = parseDateToMs(dateStr);
 
@@ -1213,7 +1217,7 @@ function renderRapportForSelection(){
     const plates = g.vehicles.map(v => v.plate).join(", ");
 
     // Colonne Lieu : uniquement le site
-    const lieu = g.site;
+    const lieu = fixText(g.site);
 
     // Colonne Détails : horodatage sur une ligne
     const detailsText =
