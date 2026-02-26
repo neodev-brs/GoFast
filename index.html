@@ -870,10 +870,15 @@ function renderScoreBadgeHtml(percentRaw) {
     dateStr = h ? `${d} ${h}` : d;
   }
 
-  const site = safeTrim(get(
+  let site = safeTrim(get(
   "lieu","site","point","poste","peage","lapi","camera",
   "localisation","adresse"
 ));
+
+// Correction CP850 → UTF-8 (cas fréquent exports péage / LAPI)
+site = site
+  .replace(/\u201A/g, "é")   // ‚ → é
+  .replace(/P‚age/gi, "Péage");
 
   const ts = parseDateToMs(dateStr);
 
