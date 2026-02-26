@@ -803,16 +803,28 @@
   function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
 
 function fixText(s){
-  return String(s || "")
-    // cas CP850 lu en Windows-1252 : é => ‚
-    .replace(/\u201A/g, "é")
+  let t = String(s || "");
 
-    // cas mauvais décodage : é => � (replacement char) -> on corrige ciblé "P�age"
-    .replace(/P\uFFFDage/gi, "Péage")
+  // 1) CP850 mal lu en 1252
+  t = t.replace(/\u201A/g, "é"); // ‚ -> é
 
-    // garde-fous classiques
-    .replace(/P[‚�\?]age/gi, "Péage")
+  // 2) Mojibake UTF-8 -> 1252 (classique)
+  t = t
+    .replace(/Ã©/g, "é")
+    .replace(/Ã¨/g, "è")
+    .replace(/Ãª/g, "ê")
+    .replace(/Ã /g, "à")
+    .replace(/Ã´/g, "ô")
+    .replace(/Ã®/g, "î")
+    .replace(/Ã»/g, "û")
+    .replace(/Ã§/g, "ç");
+
+  // 3) Péage (toutes variantes foireuses vues)
+  t = t
+    .replace(/P(?:Ã©|Ã¨|Ãª|Ã«|[�\uFFFD]|\u201A|\?)age/gi, "Péage")
     .replace(/Peage/gi, "Péage");
+
+  return t.trim();
 }
 
 function roundUpTo5(n) {
