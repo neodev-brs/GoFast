@@ -274,6 +274,15 @@
   display:block !important;
 }
 
+/* Rapport : lisibilité */
+#rapportTexte{
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+/* Petit “rythme” entre paragraphes (si tu mets des lignes vides dans le texte) */
+#rapport .fr-card__desc{ margin-bottom: 1rem; }
+
 </style>
 
 </head>
@@ -1044,25 +1053,55 @@ function parseCsv(text) {
 
 function buildQualificationText({ niveau, plaques, lieux }) {
   const plaquesTxt = (plaques || []).join(", ") || "—";
-  const lieuxTxt = (lieux || []).join(", ") || "—";
+  const lieuxTxt = (lieux || []).map(s => `- ${s}`).join("\n") || "- —";
 
   if (niveau === "eleve") {
-    return `Qualification du phénomène :
-Les données analysées révèlent des déplacements synchronisés et répétés entre les véhicules ${plaquesTxt}.
-Plusieurs occurrences présentent des passages rapprochés sur les sites ${lieuxTxt}, avec des écarts temporels réduits et une cohérence d’itinéraire.
-L’ensemble de ces éléments est compatible avec un déplacement structuré de type convoi et justifie un approfondissement (recoupements LAPI / vidéosurveillance / contrôles associés).`;
+    return `Qualification du phénomène
+
+Véhicules concernés :
+${plaquesTxt}
+
+Sites communs observés :
+${lieuxTxt}
+
+Analyse :
+Les données analysées révèlent des déplacements synchronisés et répétés entre plusieurs véhicules.
+Les écarts temporels observés, la fréquence des occurrences et la cohérence des itinéraires sont compatibles avec un déplacement structuré de type convoi.
+
+Conclusion :
+Ces éléments constituent des indices concordants justifiant un approfondissement (recoupements LAPI / vidéosurveillance / contrôles associés).`;
   }
 
   if (niveau === "modere") {
-    return `Qualification du phénomène :
-L’analyse met en évidence plusieurs passages rapprochés entre les véhicules ${plaquesTxt}, sur des sites communs ${lieuxTxt}, dans des intervalles temporels réduits.
+    return `Qualification du phénomène
+
+Véhicules concernés :
+${plaquesTxt}
+
+Sites communs observés :
+${lieuxTxt}
+
+Analyse :
+L’analyse met en évidence plusieurs passages rapprochés entre les véhicules identifiés, sur des sites communs et dans des intervalles temporels réduits.
 La répétition de ces occurrences suggère l’existence possible d’un déplacement coordonné.
+
+Conclusion :
 Ces éléments nécessitent des vérifications complémentaires afin d’écarter une coïncidence fortuite.`;
   }
 
-  return `Qualification du phénomène :
-L’analyse ne met pas en évidence d’éléments suffisamment concordants permettant de caractériser un déplacement coordonné entre les véhicules ${plaquesTxt}.
-Des passages rapprochés ont été observés sur ${lieuxTxt}, mais ils demeurent isolés et sans répétition significative sur la période étudiée.
+  return `Qualification du phénomène
+
+Véhicules concernés :
+${plaquesTxt}
+
+Sites observés :
+${lieuxTxt}
+
+Analyse :
+L’analyse ne met pas en évidence d’éléments suffisamment concordants permettant de caractériser un déplacement coordonné.
+Des passages rapprochés ont été observés, mais ils demeurent isolés et sans répétition significative sur la période étudiée.
+
+Conclusion :
 En l’état, les éléments relevés restent compatibles avec des coïncidences de circulation.`;
 }
 
@@ -1618,20 +1657,19 @@ function renderOrderStabilityForSelection() {
 
   function decodeCsvFileSmart(file) {
   return file.arrayBuffer().then((buffer) => {
-    // 1) Essai UTF-8 (le plus courant sur les exports modernes)
-    let txt = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
 
-    // Si présence du caractère de remplacement, c'est souvent un mauvais décodage
-    if (txt.includes("�")) {
-      try {
-        txt = new TextDecoder("windows-1252", { fatal: false }).decode(buffer);
-      } catch {
-        // dernier filet : latin1 (souvent accepté)
-        txt = new TextDecoder("iso-8859-1", { fatal: false }).decode(buffer);
-      }
-    }
+    // 1) UTF-8 strict : si c'est du vrai UTF-8, on le garde
+    try {
+      return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+    } catch (e) {}
 
-    return txt;
+    // 2) Fallback Windows-1252 (exports Windows)
+    try {
+      return new TextDecoder("windows-1252", { fatal: false }).decode(buffer);
+    } catch (e) {}
+
+    // 3) Dernier filet : latin1
+    return new TextDecoder("iso-8859-1", { fatal: false }).decode(buffer);
   });
 }
 
