@@ -1385,23 +1385,6 @@ function orderStabilityMeta(pct) {
     "L’ordre varie fortement d’une occurrence à l’autre : coïncidence plus probable (ou données incomplètes)." };
 }
 
-function setOrderBadgePercent(pct) {
-  const badge = document.getElementById("orderBadge");
-  if (!badge) return;
-
-  const p = Math.max(0, Math.min(100, Math.round(pct)));
-
-  // IMPORTANT : reset complet (évite l'icône et les classes qui s'accumulent)
-  badge.className = "fr-badge";
-
-  // Couleurs DSFR selon le %
-  if (p >= 75) badge.classList.add("fr-badge--success");
-  else if (p >= 45) badge.classList.add("fr-badge--info");
-  else badge.classList.add("fr-badge--warning");
-
-  // Texte = % (pas de label)
-  badge.textContent = `${p}%`;
-}
 
 function renderOrderStabilityForSelection() {
   const bar   = document.getElementById("orderProgress");
@@ -1437,14 +1420,10 @@ function renderOrderStabilityForSelection() {
 
   const meta = orderStabilityMeta(pct);
 
-  // Progress bar + valeur
   bar.style.width = `${pct}%`;
   val.textContent = `${pct}%`;
-
-  // ✅ Badge = "XX%" + couleur (sans icône)
-  setOrderBadgePercent(pct);
-
-  // Texte d'aide (tu gardes l'explication enquêteur)
+  badge.className = `fr-badge fr-badge--${meta.badge}`;
+  badge.textContent = meta.label;
   help.textContent = meta.help;
 }
 
