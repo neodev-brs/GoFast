@@ -270,6 +270,10 @@
 #orderBadge { white-space: nowrap; }
 #orderHelp { opacity: .85; }
 
+#rapport .fr-card__content{
+  display:block !important;
+}
+
 </style>
 
 </head>
@@ -561,6 +565,46 @@
   </div>
 </div>
 
+<!-- RAPPORT -->
+<div class="fr-col-12" id="rapport">
+  <div class="fr-card fr-card--no-arrow">
+    <div class="fr-card__body">
+      <div class="fr-card__content">
+        <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
+          <div class="fr-col">
+            <h3 class="fr-card__title">Rapport d’analyse</h3>
+            <p class="fr-card__desc">
+              Qualification automatique du phénomène (sélectionne un groupe dans le tableau).
+            </p>
+          </div>
+        </div>
+
+        <div class="fr-alert fr-alert--info fr-mb-2w" id="rapportHint">
+          <p>Sélectionne une ligne de résultat pour afficher le rapport.</p>
+        </div>
+
+        <!-- TEXTE COPIABLE -->
+        <div id="rapportTexte" class="fr-text--sm fr-mb-3w" style="white-space: pre-wrap;">
+          —
+        </div>
+
+        <!-- Bouton copier en bas à droite -->
+        <div class="fr-btns-group fr-btns-group--right fr-btns-group--inline">
+          <button class="fr-btn fr-btn--secondary" id="btnCopierRapport" type="button" disabled>
+            Copier
+          </button>
+        </div>
+
+        <!-- Message succès -->
+        <div id="copieOk" class="fr-alert fr-alert--success fr-mt-2w" style="display:none;">
+          <p>Rapport copié dans le presse-papiers.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
   </main>
 
 <dialog id="fr-theme-modal" class="fr-modal" aria-labelledby="fr-theme-modal-title">
@@ -687,6 +731,10 @@
     statusBadge: document.getElementById("statusBadge"),
     statsText: document.getElementById("statsText"),
     toggleModeEnquete: document.getElementById("toggleModeEnquete"),
+    rapportTexte: document.getElementById("rapportTexte"),
+    rapportHint: document.getElementById("rapportHint"),
+    btnCopierRapport: document.getElementById("btnCopierRapport"),
+    copieOk: document.getElementById("copieOk"),
   };
 
   function setStatus(type, text) {
@@ -994,6 +1042,80 @@ function parseCsv(text) {
   return out;
 }
 
+function buildQualificationText({ niveau, plaques, lieux }) {
+  const plaquesTxt = (plaques || []).join(", ") || "—";
+  const lieuxTxt = (lieux || []).join(", ") || "—";
+
+  if (niveau === "eleve") {
+    return `Qualification du phénomène :
+Les données analysées révèlent des déplacements synchronisés et répétés entre les véhicules ${plaquesTxt}.
+Plusieurs occurrences présentent des passages rapprochés sur les sites ${lieuxTxt}, avec des écarts temporels réduits et une cohérence d’itinéraire.
+L’ensemble de ces éléments est compatible avec un déplacement structuré de type convoi et justifie un approfondissement (recoupements LAPI / vidéosurveillance / contrôles associés).`;
+  }
+
+  if (niveau === "modere") {
+    return `Qualification du phénomène :
+L’analyse met en évidence plusieurs passages rapprochés entre les véhicules ${plaquesTxt}, sur des sites communs ${lieuxTxt}, dans des intervalles temporels réduits.
+La répétition de ces occurrences suggère l’existence possible d’un déplacement coordonné.
+Ces éléments nécessitent des vérifications complémentaires afin d’écarter une coïncidence fortuite.`;
+  }
+
+  return `Qualification du phénomène :
+L’analyse ne met pas en évidence d’éléments suffisamment concordants permettant de caractériser un déplacement coordonné entre les véhicules ${plaquesTxt}.
+Des passages rapprochés ont été observés sur ${lieuxTxt}, mais ils demeurent isolés et sans répétition significative sur la période étudiée.
+En l’état, les éléments relevés restent compatibles avec des coïncidences de circulation.`;
+}
+
+function niveauFromScore(scorePctRaw){
+  const pct = roundUpTo5(scorePctRaw);
+  if (pct <= 30) return "faible";
+  if (pct <= 70) return "modere";
+  return "eleve";
+}
+
+function extractLieuxFromOccurrences(occurrences){
+  // On prend les sites uniques, on garde l’ordre d’apparition
+  const seen = new Set();
+  const out = [];
+  for (const o of (occurrences || [])) {
+    const s = o?.site;
+    if (s && !seen.has(s)) { seen.add(s); out.push(s); }
+  }
+  return out;
+}
+
+function renderRapportForSelection(){
+  if (!els.rapportTexte || !els.btnCopierRapport) return;
+
+  const isEnquete = !!els.toggleModeEnquete?.checked;
+
+  // On veut le rapport uniquement en vue synthétique + ligne sélectionnée
+  if (isEnquete || state.selectedResultIndex < 0) {
+    els.rapportTexte.textContent = "—";
+    if (els.rapportHint) els.rapportHint.style.display = "";
+    els.btnCopierRapport.disabled = true;
+    return;
+  }
+
+  const r = state.results[state.selectedResultIndex];
+  if (!r) {
+    els.rapportTexte.textContent = "—";
+    if (els.rapportHint) els.rapportHint.style.display = "";
+    els.btnCopierRapport.disabled = true;
+    return;
+  }
+
+  const niveau = niveauFromScore(r.scorePctRaw);
+  const plaques = r.plates || [];
+  const lieux = extractLieuxFromOccurrences(r.occurrences);
+
+  const texte = buildQualificationText({ niveau, plaques, lieux });
+
+  els.rapportTexte.textContent = texte;
+  if (els.rapportHint) els.rapportHint.style.display = "none";
+  els.btnCopierRapport.disabled = false;
+}
+
   // ============================================================
   // MODULE UI
   // ============================================================
@@ -1094,7 +1216,7 @@ function renderCurrent() {
       // rafraîchit la timeline si une sélection existe
     if (state.selectedResultIndex >= 0 || !!els.toggleModeEnquete?.checked) {
       renderTimelineForSelection();
-      renderOrderStabilityForSelection();
+      renderRapportForSelection();
 }
 }
 
@@ -1153,6 +1275,11 @@ function resetAll() {
   }
   const orderHelp = document.getElementById("orderHelp");
   if (orderHelp) orderHelp.textContent = "Sélectionne une ligne de résultat pour afficher l’indicateur.";
+
+  if (els.rapportHint) els.rapportHint.style.display = "";
+  if (els.rapportTexte) els.rapportTexte.textContent = "—";
+  if (els.btnCopierRapport) els.btnCopierRapport.disabled = true;
+  if (els.copieOk) els.copieOk.style.display = "none";
 }
 
   function bindResultRowSelection() {
@@ -1185,6 +1312,7 @@ function selectResult(idx) {
   if (hint) hint.style.display = "none";
 
   renderOrderStabilityForSelection();
+  renderRapportForSelection();
 }
 
 function renderTimelineForSelection() {
@@ -1552,6 +1680,21 @@ function renderOrderStabilityForSelection() {
   });
 
   els.toggleModeEnquete.addEventListener("change", renderCurrent);
+
+  els.btnCopierRapport?.addEventListener("click", async () => {
+  const content = els.rapportTexte?.textContent || "";
+  if (!content || content === "—") return;
+
+  try {
+    await navigator.clipboard.writeText(content);
+    if (els.copieOk) {
+      els.copieOk.style.display = "block";
+      setTimeout(() => (els.copieOk.style.display = "none"), 2200);
+    }
+  } catch (e) {
+    alert("Impossible de copier (droits navigateur).");
+  }
+});
 
   // Init
   resetAll();
