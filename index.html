@@ -805,6 +805,12 @@
 
   function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
 
+function fixText(s){
+  return String(s || "")
+    .replace(/\u201A/g, "é")   // ‚ → é (CP850 mal décodé)
+    .replace(/P‚age/gi, "Péage");
+}
+
 function roundUpTo5(n) {
   if (!Number.isFinite(n)) return 0;
   n = clamp(n, 0, 100);
@@ -1067,7 +1073,7 @@ Les données analysées mettent en évidence des passages rapprochés et répét
 
 Les écarts temporels observés et la répétition des occurrences sont compatibles avec un déplacement coordonné de type convoi.
 
-Ces éléments constituent des indices concordants justifiant des investigations complémentaires (recoupements LAPI, exploitation vidéosurveillance, contrôles associés).`;
+Ces éléments constituent des indices concordants justifiant un approfondissement des investigations.`;
   }
 
   if (niveau === "modere") {
@@ -1167,7 +1173,7 @@ function renderRapportForSelection(){
     // Détails sur UNE ligne (avec tooltip)
     const detailsText = r.occurrences
       .slice(0, 3)
-      .map(o => `${o.site} (${new Date(o.tMin).toLocaleString()} → ${new Date(o.tMax).toLocaleTimeString()})`)
+      .map(o => `${fixText(o.site)} (${new Date(o.tMin).toLocaleString()} → ${new Date(o.tMax).toLocaleTimeString()})`)
       .join(" • ");
 
     const moreText = r.occurrences.length > 3 ? ` • +${r.occurrences.length - 3} autres` : "";
@@ -1181,7 +1187,7 @@ function renderRapportForSelection(){
         <td>${escapeHtml(r.plates.join(", "))}</td>
         <td class="col-small">${r.sitesCount}</td>
         <td class="col-small">${maxWindowSec}s</td>
-        <td class="col-lieu">${escapeHtml(r.occurrences[0]?.site || "")}</td>
+        <td class="col-lieu">${escapeHtml(fixText(r.occurrences[0]?.site || ""))}</td>
         <td class="col-details" title="${escapeHtml(detailsFull)}">${escapeHtml(detailsFull)}</td>
       </tr>
     `;
@@ -1404,7 +1410,7 @@ function renderTimelineForSelection() {
       dot.setAttribute("fill", "var(--background-action-low-blue-france)");
 
       dot.dataset.plate = plate;
-      dot.dataset.site = o.site;
+      dot.dataset.site = fixText(o.site);
       dot.dataset.time = new Date(veh.ts).toLocaleString();
       dot.dataset.occ = String(occIdx);
 
@@ -1486,7 +1492,7 @@ function bindTimelineHoverOnly() {
   dots.forEach(dot => {
     dot.addEventListener("mouseenter", (e) => {
       const plate = dot.dataset.plate || "";
-      const site  = dot.dataset.site || "";
+      const site  = fixText(dot.dataset.site || "");
       const time  = dot.dataset.time || "";
 
       tip.innerHTML = `<strong>${escapeHtml(plate)}</strong><br>${escapeHtml(site)}<br>${escapeHtml(time)}`;
