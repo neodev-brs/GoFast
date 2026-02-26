@@ -1053,56 +1053,35 @@ function parseCsv(text) {
 
 function buildQualificationText({ niveau, plaques, lieux }) {
   const plaquesTxt = (plaques || []).join(", ") || "—";
-  const lieuxTxt = (lieux || []).map(s => `- ${s}`).join("\n") || "- —";
+  const lieuxTxt = (lieux || []).join(", ") || "—";
 
   if (niveau === "eleve") {
-    return `Qualification du phénomène
+    return `Qualification du phénomène :
 
-Véhicules concernés :
-${plaquesTxt}
+Les données analysées mettent en évidence des passages rapprochés et répétés entre les véhicules ${plaquesTxt}, sur les sites ${lieuxTxt}.
 
-Sites communs observés :
-${lieuxTxt}
+Les écarts temporels observés et la répétition des occurrences sont compatibles avec un déplacement coordonné de type convoi.
 
-Analyse :
-Les données analysées révèlent des déplacements synchronisés et répétés entre plusieurs véhicules.
-Les écarts temporels observés, la fréquence des occurrences et la cohérence des itinéraires sont compatibles avec un déplacement structuré de type convoi.
-
-Conclusion :
-Ces éléments constituent des indices concordants justifiant un approfondissement (recoupements LAPI / vidéosurveillance / contrôles associés).`;
+Ces éléments constituent des indices concordants justifiant des investigations complémentaires (recoupements LAPI, exploitation vidéosurveillance, contrôles associés).`;
   }
 
   if (niveau === "modere") {
-    return `Qualification du phénomène
+    return `Qualification du phénomène :
 
-Véhicules concernés :
-${plaquesTxt}
+Plusieurs passages rapprochés ont été observés entre les véhicules ${plaquesTxt}, sur les sites ${lieuxTxt}.
 
-Sites communs observés :
-${lieuxTxt}
+La répétition partielle des occurrences suggère l’existence possible d’un déplacement coordonné.
 
-Analyse :
-L’analyse met en évidence plusieurs passages rapprochés entre les véhicules identifiés, sur des sites communs et dans des intervalles temporels réduits.
-La répétition de ces occurrences suggère l’existence possible d’un déplacement coordonné.
-
-Conclusion :
-Ces éléments nécessitent des vérifications complémentaires afin d’écarter une coïncidence fortuite.`;
+Des vérifications complémentaires sont nécessaires afin d’écarter une coïncidence fortuite.`;
   }
 
-  return `Qualification du phénomène
+  return `Qualification du phénomène :
 
-Véhicules concernés :
-${plaquesTxt}
+Des passages rapprochés ont été constatés entre les véhicules ${plaquesTxt}, sur les sites ${lieuxTxt}.
 
-Sites observés :
-${lieuxTxt}
+En l’état, les éléments relevés ne permettent pas de caractériser un déplacement coordonné structuré.
 
-Analyse :
-L’analyse ne met pas en évidence d’éléments suffisamment concordants permettant de caractériser un déplacement coordonné.
-Des passages rapprochés ont été observés, mais ils demeurent isolés et sans répétition significative sur la période étudiée.
-
-Conclusion :
-En l’état, les éléments relevés restent compatibles avec des coïncidences de circulation.`;
+Les faits demeurent compatibles avec des coïncidences de circulation.`;
 }
 
 function niveauFromScore(scorePctRaw){
