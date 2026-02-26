@@ -1636,19 +1636,31 @@ function renderOrderStabilityForSelection() {
 
   function decodeCsvFileSmart(file) {
   return file.arrayBuffer().then((buffer) => {
-
     // 1) UTF-8 strict : si c'est du vrai UTF-8, on le garde
     try {
       return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
     } catch (e) {}
 
-    // 2) Fallback Windows-1252 (exports Windows)
-    try {
-      return new TextDecoder("windows-1252", { fatal: false }).decode(buffer);
-    } catch (e) {}
+    // helper : tente un encodage, renvoie null si non supporté
+    const tryDecode = (enc) => {
+      try { return new TextDecoder(enc, { fatal: false }).decode(buffer); }
+      catch { return null; }
+    };
 
-    // 3) Dernier filet : latin1
-    return new TextDecoder("iso-8859-1", { fatal: false }).decode(buffer);
+    // 2) Windows-1252 (souvent)
+    const w1252 = tryDecode("windows-1252");
+
+    // Si on voit des "‚" (typique CP850 mal lu), on tente CP850
+    if (w1252 && (w1252.includes("‚") || /P‚age/i.test(w1252))) {
+      const cp850 = tryDecode("ibm850"); // alias CP850 (Encoding Standard)
+      if (cp850) return cp850;
+    }
+
+    if (w1252) return w1252;
+
+    // 3) Dernier filet
+    const latin1 = tryDecode("iso-8859-1");
+    return latin1 ?? "";
   });
 }
 
