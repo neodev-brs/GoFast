@@ -159,11 +159,8 @@
   text-overflow:ellipsis;
 }
 
-/* Détails sur une seule ligne */
 .col-details{
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+  white-space: normal;
 }
 
 /* Centre tout le contenu du tableau résultats */
@@ -1171,13 +1168,20 @@ function renderRapportForSelection(){
     const maxWindowSec = Math.round(maxWindowMs / 1000);
 
     // Détails sur UNE ligne (avec tooltip)
-    const detailsText = r.occurrences
-      .slice(0, 3)
-      .map(o => `${fixText(o.site)} (${new Date(o.tMin).toLocaleString()} → ${new Date(o.tMax).toLocaleTimeString()})`)
-      .join(" • ");
+   const first = r.occurrences[0];
 
-    const moreText = r.occurrences.length > 3 ? ` • +${r.occurrences.length - 3} autres` : "";
-    const detailsFull = detailsText + moreText;
+    const firstText = first
+      ? `${fixText(first.site)} (${new Date(first.tMin).toLocaleString()} → ${new Date(first.tMax).toLocaleTimeString()})`
+      : "";
+
+    const otherCount = Math.max(0, r.occurrences.length - 1);
+
+    const detailsHtml = `
+      <div>
+        ${escapeHtml(firstText)}
+        ${otherCount > 0 ? `<div class="fr-text--xs fr-hint-text">et ${otherCount} autre${otherCount>1?"s":""} résultat${otherCount>1?"s":""}</div>` : ""}
+      </div>
+    `;
 
     const scoreCell = renderScoreBadgeHtml(r.scorePctRaw);
 
@@ -1188,7 +1192,7 @@ function renderRapportForSelection(){
         <td class="col-small">${r.sitesCount}</td>
         <td class="col-small">${maxWindowSec}s</td>
         <td class="col-lieu">${escapeHtml(fixText(r.occurrences[0]?.site || ""))}</td>
-        <td class="col-details" title="${escapeHtml(detailsFull)}">${escapeHtml(detailsFull)}</td>
+        <td class="col-details">${detailsHtml}</td>
       </tr>
     `;
   }).join("");
