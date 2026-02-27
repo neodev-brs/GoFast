@@ -363,23 +363,23 @@
         <div class="fr-card fr-card--no-arrow">
           <div class="fr-card__body">
             <div class="fr-card__content">
-              <h3 class="fr-card__title">Import des fichiers</h3>
+              <h3 class="fr-card__title">Importer un fichier</h3>
               <p class="fr-card__desc">
-                Importe un ou plusieurs fichiers CSV (LAPI, péage, exports, etc.).
+                Importer un ou plusieurs fichiers CSV (LAPI, péage, exports, etc.).
               </p>
 
               <div class="fr-upload-group fr-mt-2w">
                 <label class="fr-label" for="fileInput">
-                  Sélectionner des fichiers CSV
-                  <span class="fr-hint-text">Format CSV recommandé (UTF-8). Tu peux en sélectionner plusieurs.</span>
+                  Sélectionner un ou plusieurs fichiers CSV
+                  <span class="fr-hint-text">Format CSV recommandé (UTF-8).</span>
                 </label>
                 <input class="fr-upload" type="file" id="fileInput" accept=".csv,text/csv" multiple />
               </div>
 
               <div id="dropzone" class="fr-mt-2w fr-p-2w"
                    style="border: 2px dashed var(--border-default-grey); border-radius: 8px;">
-                <strong>Glisse-dépose</strong> tes fichiers ici
-                <div class="fr-hint-text fr-mt-1v">Astuce : tu peux aussi déposer des fichiers directement depuis l’explorateur.</div>
+                <strong>Glisser-déposer</strong> les fichiers ici
+                <div class="fr-hint-text fr-mt-1v">Astuce : vous pouvez aussi déposer des fichiers directement depuis votre bureau.</div>
               </div>
 
               <div class="fr-mt-2w">
@@ -401,12 +401,12 @@
           <div class="fr-card__body">
             <div class="fr-card__content">
               <h3 class="fr-card__title">Paramètres</h3>
-              <p class="fr-card__desc">Ajuste les seuils de détection.</p>
+              <p class="fr-card__desc">Ajuster les seuils de détection.</p>
 
               <div class="fr-input-group">
                 <label class="fr-label" for="thresholdSeconds">
                   Seuil temporel (secondes)
-                  <span class="fr-hint-text">Intervalle max entre véhicules pour considérer un co-passage.</span>
+                  <span class="fr-hint-text">Intervalle maximale entre les véhicules pour considérer un co-passage.</span>
                 </label>
                 <input class="fr-input" type="number" id="thresholdSeconds" min="5" max="900" step="5" value="90" />
               </div>
@@ -414,7 +414,7 @@
               <div class="fr-input-group">
                 <label class="fr-label" for="minVehicles">
                   Nombre minimal de véhicules
-                  <span class="fr-hint-text">2 = duo suspect, 3 = ouvreuse/porteuse/suiveuse.</span>
+                  <span class="fr-hint-text">2 = duo de véhicule, 3 = convoi (ouvreuse, porteuse, suiveuse).</span>
                 </label>
                 <input class="fr-input" type="number" id="minVehicles" min="2" max="10" step="1" value="3" />
               </div>
@@ -422,7 +422,7 @@
               <div class="fr-input-group">
                 <label class="fr-label" for="minSites">
                   Nombre minimal de sites (lieux)
-                  <span class="fr-hint-text">Répétition sur plusieurs lieux = suspicion renforcée.</span>
+                  <span class="fr-hint-text">Plus le nombre de lieux est élevé, plus la probabilité d'avoir un convoi est grande.</span>
                 </label>
                 <input class="fr-input" type="number" id="minSites" min="1" max="50" step="1" value="2" />
               </div>
@@ -430,12 +430,12 @@
               <div class="fr-toggle fr-mt-2w">
                 <input type="checkbox" class="fr-toggle__input" id="toggleStrictOrder" checked>
                 <label class="fr-toggle__label" for="toggleStrictOrder">
-                  Favoriser l’ordre stable (ouvreuse → porteuse → suiveuse)
+                  Favoriser l’ordre stable (ouvreuse, porteuse, suiveuse)
                 </label>
               </div>
 
               <div class="fr-mt-2w fr-text--sm fr-hint-text">
-                Note : GoFast met en évidence des corrélations. Il ne “décide” pas à ta place.
+                Note : GoFast met en évidence des corrélations (lien entre les véhicules détectés).
               </div>
             </div>
           </div>
