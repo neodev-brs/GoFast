@@ -24,7 +24,7 @@
 
 <!-- STYLE-->
 <style>
-  /* GoFast – on neutralise le layout "marketing card" DSFR qui pousse le contenu en bas */
+  /* CSS */
   #import .fr-card__body,
   #parametres .fr-card__body,
   #resultats .fr-card__body{
@@ -34,89 +34,77 @@
   #import .fr-card__content,
   #parametres .fr-card__content,
   #resultats .fr-card__content{
-    display: block !important;     /* <= le plus robuste : plus de flex */
+    display: block !important;
     height: auto !important;
   }
 
-  /* Bonus : évite les marges qui donnent l’impression que ça "descend" */
   #import .fr-card__title,
   #parametres .fr-card__title,
   #resultats .fr-card__title{
     margin-top: 0 !important;
   }
 
-/* 1) Si le navigateur utilise le backdrop natif du <dialog> */
 #fr-theme-modal::backdrop {
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
 
-/* 3) On remet le contenu au-dessus */
 #fr-theme-modal[open] .fr-modal__body {
   position: relative;
   z-index: 1;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
-/* Enlève le contour/halo focus DSFR uniquement sur le bouton "Paramètres d’affichage" */
 #btnTheme:focus,
 #btnTheme:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
 
-/* Au repos : enlève toute bordure visible si le style tertiary/display en met une */
 #btnTheme {
   border: 0 !important;
 }
 
-/* Centre verticalement la modale thème */
 #fr-theme-modal[open] {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem; /* évite que ça colle aux bords sur petit écran */
+  padding: 2rem;
 }
 
-/* DSFR a parfois un alignement haut via la grille -> on neutralise */
 #fr-theme-modal .fr-grid-row{
   margin-top: 0 !important;
 }
 
-/* Evite que la modale dépasse en hauteur (petits écrans) */
 #fr-theme-modal .fr-modal__body{
   max-height: calc(100vh - 4rem);
   overflow: auto;
 }
 
-/* Centrage vertical/hor. SANS casser DSFR (on ne touche pas au <dialog>) */
 #fr-theme-modal[open] .fr-container--fluid {
-  min-height: 100vh;              /* plein écran */
+  min-height: 100vh;
   display: flex;
-  align-items: center;            /* centre vertical */
-  justify-content: center;        /* centre horizontal */
+  align-items: center;
+  justify-content: center;
 }
 
-/* La grille DSFR peut ajouter des marges/alignements, on neutralise */
 #fr-theme-modal[open] .fr-grid-row {
   width: 100%;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
 
-/* évite que la modale dépasse sur petit écran */
 #fr-theme-modal .fr-modal__body {
   max-height: calc(100vh - 4rem);
   overflow: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15); /* tu peux garder */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
 #fr-theme-modal::backdrop {
   background: rgba(0,0,0,.35);
 }
 
-/* Supprime définitivement la bordure du bouton Paramètres d'affichage */
 #btnTheme.fr-btn--tertiary {
   border: none !important;
 }
@@ -126,7 +114,6 @@
   box-shadow: none !important;
 }
 
-/* Enlève l'icône DSFR devant le texte dans NOS badges score */
 .gofast-bubble::before{
   display: none !important;
   content: none !important;
@@ -135,7 +122,7 @@
 .gofast-score-wrap{
   display:inline-flex;
   flex-direction:column;
-  align-items:center;   /* centre le texte */
+  align-items:center;
   gap:.25rem;
 }
 
@@ -144,14 +131,12 @@
   opacity:.8;
 }
 
-/* Colonnes étroites */
 .col-small{
   width:80px;
   white-space:nowrap;
   text-align:center;
 }
 
-/* Colonne lieu */
 .col-lieu{
   width:180px;
   white-space:nowrap;
@@ -163,20 +148,17 @@
   white-space: normal;
 }
 
-/* Centre tout le contenu du tableau résultats */
 #resultats table th,
 #resultats table td{
   text-align: center;
   vertical-align: middle;
 }
 
-/* Empêche le retour à la ligne pour la colonne Probabilité */
 #resultats table th:first-child,
 #resultats table td:first-child{
   white-space: nowrap;
 }
 
-/* Empêche le retour à la ligne pour Fenêtre max */
 #resultats table th:nth-child(4),
 #resultats table td:nth-child(4){
   white-space: nowrap;
@@ -271,13 +253,11 @@
   display:block !important;
 }
 
-/* Rapport : lisibilité */
 #rapportTexte{
   line-height: 1.7;
   white-space: pre-wrap;
 }
 
-/* Petit “rythme” entre paragraphes (si tu mets des lignes vides dans le texte) */
 #rapport .fr-card__desc{ margin-bottom: 1rem; }
 
 </style>
@@ -338,7 +318,7 @@
       </div>
     </div>
 
-    <!-- MENU (optionnel) -->
+    <!-- MENU -->
     <div class="fr-header__menu fr-modal" id="modal-menu" aria-labelledby="modal-menu-title">
       <div class="fr-container">
         <button class="fr-btn--close fr-btn" aria-controls="modal-menu" title="Fermer">Fermer</button>
@@ -355,7 +335,7 @@
 
   <main class="fr-container fr-my-4w">
 
-    <!-- GRID -->
+    <!-- GRILLE -->
     <div class="fr-grid-row fr-grid-row--gutters">
 
       <!-- IMPORT -->
@@ -454,13 +434,11 @@
 
               <div class="fr-grid-row fr-grid-row--middle fr-mb-2w">
 
-                <!-- Badge + stats à gauche -->
                 <div class="fr-col">
                   <span class="fr-badge fr-badge--info" id="statusBadge">En attente d’import</span>
                   <span class="fr-ml-2w fr-text--sm fr-hint-text" id="statsText"></span>
                 </div>
 
-                <!-- Toggle à droite -->
                 <div class="fr-col-auto">
                   <div class="fr-toggle fr-toggle--sm fr-m-0">
                     <input type="checkbox" class="fr-toggle__input" id="toggleModeEnquete">
@@ -472,15 +450,16 @@
 
               </div>
 
+              <!-- TABLEAU-->
               <div class="fr-table fr-table--bordered fr-table--layout-fixed">
                 <table>
                     <colgroup>
-                      <col style="width:140px">   <!-- % -->
-                      <col style="width:220px">   <!-- Véhicules -->
-                      <col style="width:70px">    <!-- Sites -->
-                      <col style="width:90px">    <!-- Fenêtre max -->
-                      <col style="width:160px">   <!-- Lieu -->
-                      <col>                       <!-- Détails = prend tout le reste -->
+                      <col style="width:140px">   
+                      <col style="width:220px">   
+                      <col style="width:70px">    
+                      <col style="width:90px">    
+                      <col style="width:160px">   
+                      <col>                       
                     </colgroup>
                   <thead>
                     <tr>
@@ -590,14 +569,13 @@
           —
         </div>
 
-        <!-- Bouton copier en bas à droite -->
+        <!-- BOUTON COPIER -->
         <div class="fr-btns-group fr-btns-group--right fr-btns-group--inline">
           <button class="fr-btn fr-btn--secondary" id="btnCopierRapport" type="button" disabled>
             Copier
           </button>
         </div>
 
-        <!-- Message succès -->
         <div id="copieOk" class="fr-alert fr-alert--success fr-mt-2w" style="display:none;">
           <p>Rapport copié dans le presse-papiers.</p>
         </div>
@@ -705,13 +683,11 @@
   <script>
   "use strict";
 
-  // ============================================================
   // CONFIG / ÉTAT
-  // ============================================================
   const state = {
     files: [],
-    rows: [],       // lignes normalisées (toutes sources confondues)
-    groups: [],      // groupes de convoi détectés
+    rows: [],
+    groups: [],
     rawGroups: [],
     results: [],
     hasSeenEnquete: false,
@@ -740,7 +716,6 @@
   };
 
   function setStatus(type, text) {
-    // type: info | success | warning | error
     const map = {
       info: "fr-badge--info",
       success: "fr-badge--success",
@@ -751,9 +726,7 @@
     els.statusBadge.textContent = text;
   }
 
-  // ============================================================
   // UTILITAIRES
-  // ============================================================
   function normalizePlate(plate) {
     if (!plate) return "";
     return String(plate).toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -764,23 +737,19 @@
   }
 
   function normalizeHeaderName(h) {
-  // Nettoie : casse, espaces, accents, caractères
   return safeTrim(h)
     .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")  // enlève accents
-    .replace(/[^\w]+/g, "_");                          // remplace tout le reste par _
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w]+/g, "_");
 }
 
   function parseDateToMs(input) {
-    // v1: essaie ISO ou formats classiques. Ajustera selon tes exports.
     const s = safeTrim(input);
     if (!s) return NaN;
 
-    // ISO direct
     const t = Date.parse(s);
     if (!Number.isNaN(t)) return t;
 
-    // Format FR dd/mm/yyyy hh:mm:ss
     const m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
     if (m) {
       const dd = +m[1], mm = +m[2] - 1, yyyy = +m[3];
@@ -801,10 +770,8 @@
 function fixText(s){
   let t = String(s || "");
 
-  // 1) CP850 mal lu en 1252
-  t = t.replace(/\u201A/g, "é"); // ‚ -> é
+  t = t.replace(/\u201A/g, "é");
 
-  // 2) Mojibake UTF-8 -> 1252 (classique)
   t = t
     .replace(/Ã©/g, "é")
     .replace(/Ã¨/g, "è")
@@ -815,7 +782,6 @@ function fixText(s){
     .replace(/Ã»/g, "û")
     .replace(/Ã§/g, "ç");
 
-  // 3) Péage (toutes variantes foireuses vues)
   t = t
     .replace(/P(?:Ã©|Ã¨|Ãª|Ã«|[�\uFFFD]|\u201A|\?)age/gi, "Péage")
     .replace(/Peage/gi, "Péage");
@@ -848,8 +814,6 @@ function scoreMeta(percentRaw) {
 }
 
 function toPercentSaturating(raw, k) {
-  // raw >= 0 ; k règle la “vitesse” à laquelle on monte
-  // percent = 100 * raw / (raw + k)  => jamais > 100
   raw = Math.max(0, Number(raw) || 0);
   k = Math.max(1, Number(k) || 10);
   return (100 * raw) / (raw + k);
@@ -878,7 +842,6 @@ function renderScoreBadgeHtml(percentRaw) {
 
   const plate = normalizePlate(get("plaque","immat","immatric","immatriculation","plate"));
 
-  // Date/heure : soit "date_heure", soit (date + heure)
   let dateStr =
     get("date_heure","datetime","dateheure","horodatage","timestamp");
 
@@ -902,9 +865,7 @@ site = fixText(site);
   return { plate, ts, site, source: sourceName || "import", raw };
 }
 
-// ============================================================
 // MODULE PARSER
-// ============================================================
 function stripBom(s) {
   return s && s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
 }
@@ -925,7 +886,6 @@ function splitCsvLine(line, delim) {
     const ch = line[i];
 
     if (ch === '"') {
-      // double quote escaped
       if (inQ && line[i + 1] === '"') {
         cur += '"';
         i++;
@@ -970,36 +930,28 @@ function parseCsv(text) {
   return rows;
 }
 
-  // ============================================================
-  // MODULE ENGINE (détection v1)
-  // ============================================================
+  // MODULE ENGINE
   function detectGroups(rows, cfg) {
-    // rows: [{plate, ts, site, ...}]
-    // cfg: {thresholdSeconds, minVehicles}
     const thr = cfg.thresholdSeconds * 1000;
     const minV = cfg.minVehicles;
 
-    // index par site
     const bySite = new Map();
     for (const r of rows) {
       if (!bySite.has(r.site)) bySite.set(r.site, []);
       bySite.get(r.site).push(r);
     }
-    // tri par temps
     for (const [site, arr] of bySite.entries()) {
       arr.sort((a,b) => a.ts - b.ts);
     }
 
     const groups = [];
     for (const [site, arr] of bySite.entries()) {
-      // fenêtre glissante
       let start = 0;
       for (let end = 0; end < arr.length; end++) {
         while (arr[end].ts - arr[start].ts > thr) start++;
 
-        // collecte uniques
         const window = arr.slice(start, end + 1);
-        const uniq = new Map(); // plate -> first seen in window
+        const uniq = new Map();
         for (const w of window) if (!uniq.has(w.plate)) uniq.set(w.plate, w);
 
         if (uniq.size >= minV) {
@@ -1008,7 +960,7 @@ function parseCsv(text) {
             site,
             tMin: vehicles[0].ts,
             tMax: vehicles[vehicles.length - 1].ts,
-            vehicles, // array of row
+            vehicles,
           });
         }
       }
@@ -1016,9 +968,7 @@ function parseCsv(text) {
     return groups;
   }
 
-  // ============================================================
-  // MODULE SCORING (v1 simple)
-  // ============================================================
+  // MODULE SCORING
   function scoreAndMerge(groups, cfg) {
   const minSites = cfg.minSites;
   const strictOrder = cfg.strictOrder;
@@ -1112,7 +1062,6 @@ function niveauFromScore(scorePctRaw){
 }
 
 function extractLieuxFromOccurrences(occurrences){
-  // On prend les sites uniques, on garde l’ordre d’apparition
   const seen = new Set();
   const out = [];
   for (const o of (occurrences || [])) {
@@ -1127,7 +1076,6 @@ function renderRapportForSelection(){
 
   const isEnquete = !!els.toggleModeEnquete?.checked;
 
-  // On veut le rapport uniquement en vue synthétique + ligne sélectionnée
   if (isEnquete || state.selectedResultIndex < 0) {
     els.rapportTexte.textContent = "—";
     if (els.rapportHint) els.rapportHint.style.display = "";
@@ -1154,9 +1102,7 @@ function renderRapportForSelection(){
   els.btnCopierRapport.disabled = false;
 }
 
-  // ============================================================
   // MODULE UI
-  // ============================================================
   function renderFileList() {
     els.fileList.innerHTML = "";
     for (const f of state.files) {
@@ -1179,7 +1125,6 @@ function renderRapportForSelection(){
     const maxWindowMs = Math.max(...r.occurrences.map(o => o.tMax - o.tMin));
     const maxWindowSec = Math.round(maxWindowMs / 1000);
 
-    // Détails sur UNE ligne (avec tooltip)
    const first = r.occurrences[0];
 
     const firstText = first
@@ -1224,10 +1169,8 @@ function renderRapportForSelection(){
     const windowSec = Math.round((g.tMax - g.tMin) / 1000);
     const plates = g.vehicles.map(v => v.plate).join(", ");
 
-    // Colonne Lieu : uniquement le site
     const lieu = fixText(g.site);
 
-    // Colonne Détails : horodatage sur une ligne
     const detailsText =
       `${new Date(g.tMin).toLocaleString()} → ${new Date(g.tMax).toLocaleTimeString()}`;
 
@@ -1252,13 +1195,11 @@ function renderCurrent() {
     setStatus("info", "Vue détaillée");
     renderResultsEnquete(state.rawGroups);
   } else {
-    // IMPORTANT : afficher "Vue synthétique" uniquement si on a déjà coché une fois
     if (state.hasSeenEnquete) {
       setStatus("info", "Vue synthétique");
     }
     renderResults(state.results, getConfig());
   }
-      // rafraîchit la timeline si une sélection existe
     if (state.selectedResultIndex >= 0 || !!els.toggleModeEnquete?.checked) {
       renderTimelineForSelection();
       renderRapportForSelection();
@@ -1283,7 +1224,6 @@ function resetAll() {
   state.hasSeenEnquete = false;
   state.selectedResultIndex = -1;
 
-  // UI import / état
   els.toggleModeEnquete.checked = false;
   els.toggleModeEnquete.disabled = true;
   els.fileInput.value = "";
@@ -1291,12 +1231,10 @@ function resetAll() {
   setStatus("info", "En attente d’import");
   renderFileList();
 
-  // Tableau résultats
   els.resultsBody.innerHTML = `
     <tr><td colspan="6" class="fr-text--sm fr-hint-text">Aucun résultat pour le moment.</td></tr>
   `;
 
-  // Timeline
   const hint = document.getElementById("timelineHint");
   if (hint) hint.style.display = "";
 
@@ -1306,7 +1244,6 @@ function resetAll() {
   const tlSvg = document.getElementById("timelineSvg");
   if (tlSvg) tlSvg.replaceChildren();
 
-  // Carte "ordre"
   const bar = document.getElementById("orderProgress");
   if (bar) bar.style.width = "0%";
 
@@ -1344,7 +1281,6 @@ function resetAll() {
 function selectResult(idx) {
   state.selectedResultIndex = idx;
 
-  // feedback visuel simple : surligner la ligne
   els.resultsBody.querySelectorAll("tr[data-idx]").forEach(tr => {
     tr.style.outline = "";
   });
@@ -1469,15 +1405,12 @@ function svgCircle(cx,cy,r, cls){
 function positionTooltipInWrap(e, wrapEl, tipEl, offset = 12, margin = 8) {
   const rect = wrapEl.getBoundingClientRect();
 
-  // coords relatives au wrap
   let x = (e.clientX - rect.left) + offset;
   let y = (e.clientY - rect.top) + offset;
 
-  // on mesure le tooltip (il doit être display:block pour avoir sa taille)
   const tw = tipEl.offsetWidth || 0;
   const th = tipEl.offsetHeight || 0;
 
-  // clamp dans le wrap
   x = Math.max(margin, Math.min(x, rect.width - tw - margin));
   y = Math.max(margin, Math.min(y, rect.height - th - margin));
 
@@ -1526,14 +1459,10 @@ function bindTimelineHoverOnly() {
     dot.addEventListener("mouseleave", hideTip);
   });
 
-  // si on sort de la zone SVG
   svg.addEventListener("mouseleave", hideTip);
 }
 
 function computeOrderStability(occurrences) {
-  // Mesure simple et compréhensible :
-  // - on regarde le "premier véhicule" (chronologique) de chaque occurrence
-  // - stabilité = fréquence du "premier" le plus fréquent
   if (!occurrences || occurrences.length < 2) return 0;
 
   const firsts = occurrences
@@ -1545,11 +1474,10 @@ function computeOrderStability(occurrences) {
   const counts = new Map();
   firsts.forEach(p => counts.set(p, (counts.get(p) || 0) + 1));
   const max = Math.max(...counts.values());
-  return (max / firsts.length) * 100; // 0..100
+  return (max / firsts.length) * 100;
 }
 
 function orderStabilityMeta(pct) {
-  // lecture "enquêteur"
   if (pct >= 75) return { label: "Ordre très stable", badge: "success", help:
     "Le même véhicule semble ouvrir (ou fermer) le groupe à la majorité des occurrences : convoi structuré probable." };
   if (pct >= 45) return { label: "Ordre plutôt stable", badge: "info", help:
@@ -1568,7 +1496,6 @@ function renderOrderStabilityForSelection() {
 
   const isEnquete = !!els.toggleModeEnquete?.checked;
 
-  // On l’affiche surtout en vue synthétique (un groupe sélectionné).
   if (isEnquete || state.selectedResultIndex < 0) {
     bar.style.width = "0%";
     val.textContent = "—";
@@ -1600,9 +1527,7 @@ function renderOrderStabilityForSelection() {
   help.textContent = meta.help;
 }
 
-  // ===========================================================
   // ÉVÈNEMENTS
-  // ===========================================================
   els.fileInput.addEventListener("change", (e) => {
     const files = [...(e.target.files || [])];
     state.files = files;
@@ -1610,7 +1535,6 @@ function renderOrderStabilityForSelection() {
     setStatus(files.length ? "info" : "info", files.length ? "Fichiers prêts" : "En attente d’import");
   });
 
-  // Drag & drop
   ["dragenter","dragover"].forEach(evt =>
     els.dropzone.addEventListener(evt, (e) => {
       e.preventDefault(); e.stopPropagation();
@@ -1635,7 +1559,6 @@ function renderOrderStabilityForSelection() {
   els.btnReset.addEventListener("click", resetAll);
 
   els.btnDemo.addEventListener("click", async () => {
-    // v1: démo en mémoire (pas de fichier)
     const demo = [
       { plaque:"AA-123-AA", date_heure:"2026-02-12 10:01:10", site:"LAPI A6 - PK12" },
       { plaque:"BB-456-BB", date_heure:"2026-02-12 10:01:40", site:"LAPI A6 - PK12" },
@@ -1663,29 +1586,24 @@ function renderOrderStabilityForSelection() {
 
   function decodeCsvFileSmart(file) {
   return file.arrayBuffer().then((buffer) => {
-    // 1) UTF-8 strict : si c'est du vrai UTF-8, on le garde
     try {
       return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
     } catch (e) {}
 
-    // helper : tente un encodage, renvoie null si non supporté
     const tryDecode = (enc) => {
       try { return new TextDecoder(enc, { fatal: false }).decode(buffer); }
       catch { return null; }
     };
 
-    // 2) Windows-1252 (souvent)
     const w1252 = tryDecode("windows-1252");
 
-    // Si on voit des "‚" (typique CP850 mal lu), on tente CP850
     if (w1252 && (w1252.includes("‚") || /P‚age/i.test(w1252))) {
-      const cp850 = tryDecode("ibm850"); // alias CP850 (Encoding Standard)
+      const cp850 = tryDecode("ibm850");
       if (cp850) return cp850;
     }
 
     if (w1252) return w1252;
 
-    // 3) Dernier filet
     const latin1 = tryDecode("iso-8859-1");
     return latin1 ?? "";
   });
@@ -1701,7 +1619,6 @@ function renderOrderStabilityForSelection() {
       let ignored = 0;
 
       for (const f of state.files) {
-  // lecture en ANSI (Windows-1252) pour garder les accents (Péage, etc.)
   const txt = await decodeCsvFileSmart(f);
 
   const parsed = parseCsv(txt);
@@ -1752,7 +1669,7 @@ function renderOrderStabilityForSelection() {
   }
 });
 
-  // Init
+  // INIT (RECHARGEMENT)
   resetAll();
   </script>
 </body>
