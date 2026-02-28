@@ -1497,7 +1497,7 @@ function renderOrderStabilityForSelection() {
   help.textContent = meta.help;
 }
 
-// DEMO
+// DEMONSTRATION
 function generateDemoData() {
   const sites = [
     "LAPI A6 - PK12",
@@ -1505,30 +1505,47 @@ function generateDemoData() {
     "LAPI A10 - Sortie 7",
     "Péage Y",
     "LAPI A86 - Nœud Z",
-    "Péage Z",
-    "LAPI A1 - PK104",
     "Péage Nord"
   ];
 
   const data = [];
 
-  function addConvoi(startTs, plaques, baseGapSec = 25, siteStepMin = 14) {
-    sites.forEach((site, i) => {
-      const siteBase = startTs + i * siteStepMin * 60 * 1000; // progression réaliste entre sites
+  function addConvoi(startTs, plaques, siteCount, baseGapSec = 22, siteStepMin = 15) {
+    for (let i = 0; i < siteCount; i++) {
+      const site = sites[i];
+      const siteBase = startTs + i * siteStepMin * 60 * 1000;
+
       plaques.forEach((plaque, j) => {
-        const t = new Date(siteBase + j * baseGapSec * 1000 + Math.floor(Math.random()*6000));
+        const t = new Date(
+          siteBase +
+          j * baseGapSec * 1000 +
+          Math.floor(Math.random() * 4000)
+        );
+
         data.push({
           plaque,
           date_heure: t.toISOString().slice(0,19).replace("T"," "),
           site
         });
       });
-    });
+    }
   }
 
-  addConvoi(Date.now() - 2 * 3600 * 1000, ["AA-111-AA","BB-222-BB","CC-333-CC"], 18, 12);
-  addConvoi(Date.now() - 5 * 3600 * 1000, ["DD-444-DD","EE-555-EE","FF-666-FF"], 30, 16);
-  addConvoi(Date.now() - 26 * 3600 * 1000, ["GG-777-GG","HH-888-HH","JJ-999-JJ"], 22, 10);
+  addConvoi(
+    Date.now() - 3 * 3600 * 1000,
+    ["AA-111-AA","BB-222-BB","CC-333-CC"],
+    5,
+    18,
+    14
+  );
+
+  addConvoi(
+    Date.now() - 18 * 3600 * 1000,
+    ["DD-444-DD","EE-555-EE","FF-666-FF"],
+    3,
+    28,
+    17
+  );
 
   const randPlate = () => {
     const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -1537,9 +1554,10 @@ function generateDemoData() {
     return `${pick()}${pick()}-${n()}-${pick()}${pick()}`;
   };
 
-  for (let i = 0; i < 220; i++) {
+  for (let i = 0; i < 240; i++) {
     const site = sites[Math.floor(Math.random() * sites.length)];
-    const t = new Date(Date.now() - Math.random() * 36 * 3600 * 1000); // 36h
+    const t = new Date(Date.now() - Math.random() * 36 * 3600 * 1000);
+
     data.push({
       plaque: randPlate(),
       date_heure: t.toISOString().slice(0,19).replace("T"," "),
@@ -1548,7 +1566,6 @@ function generateDemoData() {
   }
 
   data.sort(() => Math.random() - 0.5);
-
   return data;
 }
 
