@@ -231,7 +231,7 @@
     pointer-events: none;
     user-select: none;
   }
-  
+
 </style>
 
 </head>
@@ -659,7 +659,6 @@
   const state = {
     files: [],
     rows: [],
-    groups: [],
     rawGroups: [],
     results: [],
     hasSeenEnquete: false,
@@ -1085,7 +1084,7 @@ function renderRapportForSelection(){
     els.btnParse.disabled = state.files.length === 0;
   }
 
-  function renderResults(results, cfg) {
+  function renderResults(results) {
   if (!results.length) {
     els.resultsBody.innerHTML = `
       <tr><td colspan="6" class="fr-text--sm fr-hint-text">Aucun convoi détecté avec ces paramètres.</td></tr>
@@ -1170,7 +1169,7 @@ function renderCurrent() {
     if (state.hasSeenEnquete) {
       setStatus("info", "Vue synthétique");
     }
-    renderResults(state.results, getConfig());
+    renderResults(state.results);
   }
     if (state.selectedResultIndex >= 0 || !!els.toggleModeEnquete?.checked) {
       renderTimelineForSelection();
@@ -1190,7 +1189,6 @@ function renderCurrent() {
 function resetAll() {
   state.files = [];
   state.rows = [];
-  state.groups = [];
   state.rawGroups = [];
   state.results = [];
   state.hasSeenEnquete = false;
