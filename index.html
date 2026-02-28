@@ -1043,7 +1043,7 @@ function buildQualificationText({ niveau, plaques, lieux }) {
   const lieuxTxt = (lieux || []).join(", ") || "—";
 
   if (niveau === "eleve") {
-    return `Qualification du phénomène :
+    return `Analyse des résultats :
 
 Les données analysées mettent en évidence des passages rapprochés et répétés entre les véhicules ${plaquesTxt}, sur les sites ${lieuxTxt}.
 
@@ -1053,7 +1053,7 @@ Ces éléments constituent des indices concordants justifiant un approfondisseme
   }
 
   if (niveau === "modere") {
-    return `Qualification du phénomène :
+    return `Analyse des résultats :
 
 Plusieurs passages rapprochés ont été observés entre les véhicules ${plaquesTxt}, sur les sites ${lieuxTxt}.
 
@@ -1062,7 +1062,7 @@ La répétition partielle des occurrences suggère l’existence possible d’un
 Des vérifications complémentaires sont nécessaires afin d’écarter une coïncidence fortuite.`;
   }
 
-  return `Qualification du phénomène :
+  return `Analyse des résultats :
 
 Des passages rapprochés ont été constatés entre les véhicules ${plaquesTxt}, sur les sites ${lieuxTxt}.
 
