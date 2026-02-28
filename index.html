@@ -1497,6 +1497,61 @@ function renderOrderStabilityForSelection() {
   help.textContent = meta.help;
 }
 
+// DEMO
+function generateDemoData() {
+  const sites = [
+    "LAPI A6 - PK12",
+    "Péage X",
+    "LAPI A10 - Sortie 7",
+    "Péage Y",
+    "LAPI A86 - Nœud Z",
+    "Péage Z",
+    "LAPI A1 - PK104",
+    "Péage Nord"
+  ];
+
+  const data = [];
+
+  function addConvoi(startTs, plaques, baseGapSec = 25, siteStepMin = 14) {
+    sites.forEach((site, i) => {
+      const siteBase = startTs + i * siteStepMin * 60 * 1000; // progression réaliste entre sites
+      plaques.forEach((plaque, j) => {
+        const t = new Date(siteBase + j * baseGapSec * 1000 + Math.floor(Math.random()*6000));
+        data.push({
+          plaque,
+          date_heure: t.toISOString().slice(0,19).replace("T"," "),
+          site
+        });
+      });
+    });
+  }
+
+  addConvoi(Date.now() - 2 * 3600 * 1000, ["AA-111-AA","BB-222-BB","CC-333-CC"], 18, 12);
+  addConvoi(Date.now() - 5 * 3600 * 1000, ["DD-444-DD","EE-555-EE","FF-666-FF"], 30, 16);
+  addConvoi(Date.now() - 26 * 3600 * 1000, ["GG-777-GG","HH-888-HH","JJ-999-JJ"], 22, 10);
+
+  const randPlate = () => {
+    const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const pick = () => letters[Math.floor(Math.random()*letters.length)];
+    const n = () => Math.floor(100 + Math.random()*900);
+    return `${pick()}${pick()}-${n()}-${pick()}${pick()}`;
+  };
+
+  for (let i = 0; i < 220; i++) {
+    const site = sites[Math.floor(Math.random() * sites.length)];
+    const t = new Date(Date.now() - Math.random() * 36 * 3600 * 1000); // 36h
+    data.push({
+      plaque: randPlate(),
+      date_heure: t.toISOString().slice(0,19).replace("T"," "),
+      site
+    });
+  }
+
+  data.sort(() => Math.random() - 0.5);
+
+  return data;
+}
+
   // ÉVÈNEMENTS
   els.fileInput.addEventListener("change", (e) => {
     const files = [...(e.target.files || [])];
@@ -1528,31 +1583,30 @@ function renderOrderStabilityForSelection() {
 
   els.btnReset.addEventListener("click", resetAll);
 
-  els.btnDemo.addEventListener("click", async () => {
-    const demo = [
-      { plaque:"AA-123-AA", date_heure:"2026-02-12 10:01:10", site:"LAPI A6 - PK12" },
-      { plaque:"BB-456-BB", date_heure:"2026-02-12 10:01:40", site:"LAPI A6 - PK12" },
-      { plaque:"CC-789-CC", date_heure:"2026-02-12 10:02:05", site:"LAPI A6 - PK12" },
+ els.btnDemo.addEventListener("click", async () => {
+  const demo = generateDemoData(); // ✅ gros dataset
 
-      { plaque:"AA-123-AA", date_heure:"2026-02-12 10:24:10", site:"Péage X" },
-      { plaque:"BB-456-BB", date_heure:"2026-02-12 10:24:50", site:"Péage X" },
-      { plaque:"CC-789-CC", date_heure:"2026-02-12 10:25:20", site:"Péage X" },
-    ];
-    state.rows = demo.map(r => normalizeRow(r, "demo")).filter(Boolean);
-    setStatus("success", "Démo chargée");
-    els.statsText.textContent = `${state.rows.length} passages normalisés`;
+  state.rows = demo.map(r => normalizeRow(r, "demo")).filter(Boolean);
 
-    const cfg = getConfig();
-    state.rawGroups = detectGroups(state.rows, cfg);
-    state.results = scoreAndMerge(state.rawGroups, cfg);
-    if (state.results.length > 0) {
-      els.toggleModeEnquete.disabled = false;
-    } else {
-      els.toggleModeEnquete.checked = false;
-      els.toggleModeEnquete.disabled = true;
-    }
-    renderCurrent();
-  });
+  setStatus("success", "Démo chargée (gros volume)");
+  els.statsText.textContent = `${state.rows.length} passages normalisés`;
+
+  const cfg = getConfig();
+  state.rawGroups = detectGroups(state.rows, cfg);
+  state.results = scoreAndMerge(state.rawGroups, cfg);
+
+  if (state.results.length > 0) {
+    els.toggleModeEnquete.disabled = false;
+  } else {
+    els.toggleModeEnquete.checked = false;
+    els.toggleModeEnquete.disabled = true;
+  }
+
+  // reset sélection (sinon ça garde une ancienne sélection)
+  state.selectedResultIndex = -1;
+
+  renderCurrent();
+});
 
   function decodeCsvFileSmart(file) {
   return file.arrayBuffer().then((buffer) => {
