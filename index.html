@@ -1497,39 +1497,50 @@ function renderOrderStabilityForSelection() {
   help.textContent = meta.help;
 }
 
-// DEMONSTRATION
+// DEMONSTRATION (A13)
 function generateDemoData() {
   const sites = [
-    "LAPI A6 - PK12",
-    "Péage X",
-    "LAPI A10 - Sortie 7",
-    "Péage Y",
-    "LAPI A86 - Nœud Z",
-    "Péage Nord"
+    "LAPI A13 - PK 50",
+    "Péage Buchelay",
+    "LAPI A6 - PK 125",
+    "Péage Heudebouville ",
+    "LAPI A13 - PK 200",
+    "Péage Beuzeville "
   ];
 
   const data = [];
 
-  function addConvoi(startTs, plaques, siteCount, baseGapSec = 22, siteStepMin = 15) {
-    for (let i = 0; i < siteCount; i++) {
-      const site = sites[i];
-      const siteBase = startTs + i * siteStepMin * 60 * 1000;
+  function addConvoi(startTs, plaques, siteCount, baseGapSec = 22, siteStepMin = 15, firstPattern = null) {
+  for (let i = 0; i < siteCount; i++) {
+    const site = sites[i];
+    const siteBase = startTs + i * siteStepMin * 60 * 1000;
 
-      plaques.forEach((plaque, j) => {
-        const t = new Date(
-          siteBase +
-          j * baseGapSec * 1000 +
-          Math.floor(Math.random() * 4000)
-        );
+    // si pattern fourni, on force quel véhicule passe en 1er sur ce site
+    const first = firstPattern?.[i] || null;
 
-        data.push({
-          plaque,
-          date_heure: t.toISOString().slice(0,19).replace("T"," "),
-          site
-        });
-      });
+    // on crée un ordre d’offsets: le "first" a l’offset le plus petit
+    const offsets = new Map();
+    let k = 0;
+    for (const p of plaques) {
+      if (p === first) offsets.set(p, 0);
     }
+    for (const p of plaques) {
+      if (p === first) continue;
+      k++;
+      offsets.set(p, k * baseGapSec * 1000);
+    }
+
+    // push des 3 véhicules
+    plaques.forEach((plaque) => {
+      const t = new Date(siteBase + (offsets.get(plaque) || 0) + Math.floor(Math.random() * 3000));
+      data.push({
+        plaque,
+        date_heure: t.toISOString().slice(0,19).replace("T"," "),
+        site
+      });
+    });
   }
+}
 
   addConvoi(
     Date.now() - 3 * 3600 * 1000,
@@ -1539,13 +1550,14 @@ function generateDemoData() {
     14
   );
 
-  addConvoi(
-    Date.now() - 18 * 3600 * 1000,
-    ["DD-444-DD","EE-555-EE","FF-666-FF"],
-    3,
-    28,
-    17
-  );
+addConvoi(
+  Date.now() - 18 * 3600 * 1000,
+  ["DD-444-DD","EE-555-EE","FF-666-FF"],
+  5,
+  28,
+  17,
+  ["DD-444-DD", "EE-555-EE", "FF-666-FF", "EE-555-EE", "DD-444-DD"]
+);
 
   const randPlate = () => {
     const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
