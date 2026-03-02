@@ -811,20 +811,27 @@ function renderScoreBadgeHtml(percentRaw) {
     return "";
   };
 
-  const plate = normalizePlate(get("plaque","immat","immatric","immatriculation","plate"));
+const plate = normalizePlate(get(
+  "plaque","immat","immatric","immatriculation","plate",
+  "immat_ocr","immat_badge"
+));
 
-  let dateStr =
-    get("date_heure","datetime","dateheure","horodatage","timestamp");
+let dateStr = get("date_heure","datetime","dateheure","horodatage","timestamp");
 
-  const d = safeTrim(get("date"));
-  const h = safeTrim(get("heure","time"));
-  if (!safeTrim(dateStr) && d) {
-    dateStr = h ? `${d} ${h}` : d;
-  }
+const d =
+  safeTrim(get("date","jour","jour_e"));
 
-  let site = safeTrim(get(
+const h =
+  safeTrim(get("heure","time","heure_e"));
+
+if (!safeTrim(dateStr) && d) {
+  dateStr = h ? `${d} ${h}` : d;
+}
+
+let site = safeTrim(get(
   "lieu","site","point","poste","peage","lapi","camera",
-  "localisation","adresse"
+  "localisation","adresse",
+  "gare","gare_e"
 ));
 
 site = fixText(site);
