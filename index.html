@@ -317,15 +317,15 @@
             <div class="fr-card__content">
               <h3 class="fr-card__title">Importer un fichier</h3>
               <p class="fr-card__desc">
-                Importer un ou plusieurs fichiers CSV (LAPI, péage, exports).
+                Importer un ou plusieurs fichiers CSV / XLSX / ODS (LAPI, péage, exports).
               </p>
 
               <div class="fr-upload-group fr-mt-2w">
                 <label class="fr-label" for="fileInput">
-                  Sélectionnez un ou plusieurs fichiers CSV
+                  Sélectionnez un ou plusieurs fichiers (CSV / XLSX / ODS)
                   <span class="fr-hint-text">Format CSV recommandé (UTF-8).</span>
                 </label>
-                <input class="fr-upload" type="file" id="fileInput" accept=".csv,text/csv" multiple />
+                <input class="fr-upload" type="file" id="fileInput" accept=".csv,.xlsx,.ods,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.oasis.opendocument.spreadsheet" multiple />
               </div>
 
               <div id="dropzone" class="fr-mt-2w fr-p-2w"
@@ -625,6 +625,7 @@
   <!-- DSFR JS -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.module.min.js"></script>
   <script nomodule src="https://cdn.jsdelivr.net/npm/@gouvfr/dsfr@1.13.1/dist/dsfr/dsfr.nomodule.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
   <script>
 ;(function () {
@@ -1609,7 +1610,9 @@ addConvoi(
     })
   );
   els.dropzone.addEventListener("drop", (e) => {
-    const files = [...(e.dataTransfer.files || [])].filter(f => f.name.toLowerCase().endsWith(".csv"));
+    const files = [...(e.dataTransfer.files || [])].filter(f =>
+  /\.(csv|xlsx|ods)$/i.test(f.name)
+);
     if (files.length) {
       state.files = files;
       renderFileList();
@@ -1678,15 +1681,46 @@ addConvoi(
       const allRows = [];
       let ignored = 0;
 
-      for (const f of state.files) {
-  const txt = await decodeCsvFileSmart(f);
+  for (const f of state.files) {
+  const ext = (f.name.split(".").pop() || "").toLowerCase();
 
-  const parsed = parseCsv(txt);
+  if (ext === "csv") {
+    const txt = await decodeCsvFileSmart(f);
+    const parsed = parseCsv(txt);
 
-  for (const r of parsed) {
-    const n = normalizeRow(r, f.name);
-    if (n) allRows.push(n);
-    else ignored++;
+    for (const r of parsed) {
+      const n = normalizeRow(r, f.name);
+      if (n) allRows.push(n);
+      else ignored++;
+    }
+
+  } else if (ext === "xlsx" || ext === "ods") {
+    const buffer = await f.arrayBuffer();
+    const data = new Uint8Array(buffer);
+
+    const wb = XLSX.read(data, { type: "array" });
+    const sheetName = wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+
+    const parsed = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+    // IMPORTANT : normaliser les clés comme ton CSV (lowercase + underscores)
+    const normalizedParsed = parsed.map(row => {
+      const out = {};
+      for (const [k, v] of Object.entries(row)) {
+        out[normalizeHeaderName(String(k))] = v;
+      }
+      return out;
+    });
+
+    for (const r of normalizedParsed) {
+      const n = normalizeRow(r, f.name);
+      if (n) allRows.push(n);
+      else ignored++;
+    }
+
+  } else {
+    ignored++;
   }
 }
 
